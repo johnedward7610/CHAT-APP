@@ -1,6 +1,7 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta charset="UTF-8"/>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>All Users</title>
 <style>
@@ -15,36 +16,40 @@ body.dark{background:#0f1117;color:#fff;}
 </style>
 </head>
 <body>
-<button class="theme-toggle" id="themeToggle">🌙</button><h2 style="text-align:center;margin-top:40px;">All Users</h2>
-<div class="container" id="usersList"></div><script type="module">
+<button class="theme-toggle" id="themeToggle">🌙</button>
+<h2 style="text-align:center;margin-top:40px;">All Users</h2>
+<div class="container" id="usersList"></div>
+
+<script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-analytics.js";
 import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
 // Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
   authDomain: "chat-34ff3.firebaseapp.com",
   projectId: "chat-34ff3",
-  storageBucket: "chat-34ff3.firebasestorage.app",
+  storageBucket: "chat-34ff3.appspot.com",
   messagingSenderId: "391966829170",
   appId: "1:391966829170:web:2b9fa454e8be176b7930eb",
   measurementId: "G-81MNVPKD3W"
 };
+
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// Dark/Light Theme Toggle
+// Theme Toggle
 const themeToggle = document.getElementById("themeToggle");
 themeToggle.addEventListener("click", () => {
   document.body.classList.toggle("dark");
   themeToggle.textContent = document.body.classList.contains("dark") ? "☀" : "🌙";
 });
 
-// Display Users
+// Users Display
 const usersList = document.getElementById("usersList");
 let currentUser = null;
 
@@ -54,20 +59,17 @@ function showMessage(msg) {
 
 onAuthStateChanged(auth, user => {
   if(user) {
-    console.log("Logged in as:", user.uid);
     currentUser = user;
     loadUsers();
   } else {
-    console.log("No user logged in");
-    showMessage("Please log in to see users.");
+    // Not logged in → redirect to login
+    window.location.href = "login.html";
   }
 });
 
 function loadUsers() {
-  console.log("Loading users...");
   onSnapshot(collection(db, "users"), snapshot => {
     if(snapshot.empty) {
-      console.log("No users found.");
       showMessage("No users found.");
       return;
     }
@@ -76,7 +78,6 @@ function loadUsers() {
     let displayed = 0;
 
     snapshot.docs.forEach(doc => {
-      console.log("User doc:", doc.id, doc.data());
       if(currentUser && doc.id === currentUser.uid) return; // skip self
       const fullName = doc.data().fullName || "(No name)";
       const email = doc.data().email || "(No email)";
@@ -95,5 +96,6 @@ function loadUsers() {
     showMessage("Error loading users. Check console for details.");
   });
 }
-</script></body>
+</script>
+</body>
 </html>
