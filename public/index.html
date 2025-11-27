@@ -1,4 +1,109 @@
-<!DOCTYPE html>
-<html>
-  hrllo
+<!DOCTYPE html><html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login with Google</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f4f6ff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+  }
+  .login-container {
+    background: #fff;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    text-align: center;
+  }
+  button {
+    background-color: #4285F4;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    font-size: 16px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  button:hover {
+    background-color: #357ae8;
+  }
+  h2 {
+    margin-bottom: 20px;
+    color: #333;
+  }
+  #user-info {
+    margin-top: 20px;
+    color: #555;
+  }
+</style>
+</head>
+<body><div class="login-container">
+  <h2>Login with Google</h2>
+  <button id="google-login">Sign in with Google</button>
+  <div id="user-info"></div>
+</div><!-- Firebase SDK --><script src="https://www.gstatic.com/firebasejs/10.24.0/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.24.0/firebase-auth-compat.js"></script><script src="https://www.gstatic.com/firebasejs/10.24.0/firebase-database-compat.js"></script><script>
+  // TODO: Replace with your Firebase project config
+  // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
+  authDomain: "chat-34ff3.firebaseapp.com",
+  projectId: "chat-34ff3",
+  storageBucket: "chat-34ff3.firebasestorage.app",
+  messagingSenderId: "391966829170",
+  appId: "1:391966829170:web:2b9fa454e8be176b7930eb",
+  measurementId: "G-81MNVPKD3W"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+
+  const auth = firebase.auth();
+  const database = firebase.database();
+
+  const loginButton = document.getElementById('google-login');
+  const userInfoDiv = document.getElementById('user-info');
+
+  loginButton.addEventListener('click', () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    auth.signInWithPopup(provider)
+      .then((result) => {
+        const user = result.user;
+        userInfoDiv.innerHTML = `<p>Welcome, ${user.displayName}!</p><p>Email: ${user.email}</p>`;
+        
+        // Save user info to Firebase Realtime Database
+        database.ref('users/' + user.uid).set({
+          name: user.displayName,
+          email: user.email,
+          lastLogin: new Date().toISOString()
+        });
+      })
+      .catch((error) => {
+        console.error(error);
+        alert('Login failed: ' + error.message);
+      });
+  });
+
+  // Optional: auto-display if user is already logged in
+  auth.onAuthStateChanged((user) => {
+    if(user) {
+      userInfoDiv.innerHTML = `<p>Welcome back, ${user.displayName}!</p><p>Email: ${user.email}</p>`;
+    }
+  });
+</script></body>
 </html>
