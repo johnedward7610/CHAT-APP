@@ -1,248 +1,66 @@
-<!DOCTYPE html><html lang="en">
+<!DOCTYPE html>
+<html lang="en">
 <head>
-<meta charset="UTF-8"/>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Swipe Auth</title>
+<title>Login</title>
 <style>
-*{box-sizing:border-box;}
-body{margin:0;font-family:Inter,sans-serif;transition:background 0.3s,color 0.3s;}
-:root{
-  --bg:#f4f6ff;--card-bg:#fff;--text:#1b1b1b;--subtext:#555;--primary:#6e8ef5;--primary-light:#a8b7ff;
-  --input-bg:#fff;--input-border:#ccc;--input-text:#222;
-}
-body.dark{
-  --bg:#0f1117;--card-bg:#141821;--text:#fff;--subtext:#b9b9b9;--primary:#6e8ef5;--primary-light:#8ea2ff;
-  --input-bg:#1c2030;--input-border:#2c3142;--input-text:#e8e8e8;
-}
-.auth-container{min-height:100vh;display:flex;justify-content:center;align-items:center;padding:40px 20px;background:var(--bg);}
-.auth-box{width:380px;padding:32px 28px;background:var(--card-bg);border-radius:20px;box-shadow:0 8px 25px rgba(0,0,0,0.08);position:relative;transition:all 0.35s ease;}
-.auth-box.expand{width:430px;padding:38px 32px;}
-.auth-title{font-size:26px;font-weight:700;color:var(--text);margin:0 0 10px 0;}
-.auth-desc{font-size:14px;color:var(--subtext);margin-bottom:24px;}
-.input-group{width:100%;margin-bottom:16px;position:relative;}
-.input-group label{display:block;margin-bottom:6px;font-size:14px;color:var(--text);}
-.input-group input,.input-group select{width:100%;padding:14px 16px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:10px;color:var(--input-text);font-size:14px;transition:border 0.2s;}
-.input-group input:focus,.input-group select:focus{border-color:var(--primary);outline:none;}
-.auth-btn{width:100%;padding:14px;border:none;border-radius:12px;background:var(--primary);color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:background 0.25s;}
-.auth-btn:hover{background:var(--primary-light);}
-.switch-link{display:block;text-align:center;margin-top:14px;color:var(--primary);font-size:14px;cursor:pointer;}
-.theme-toggle{position:absolute;top:14px;right:14px;background:transparent;border:none;cursor:pointer;font-size:22px;color:var(--text);}
-#forgotPasswordSection, #otpSection{display:none;}
-.message{margin-top:10px;font-size:14px;}
-.message.success{color:green;}
-.message.error{color:red;}
-.password-group{position:relative;}
-.toggle-password{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:transparent;border:none;cursor:pointer;font-size:16px;}
+  body { font-family: sans-serif; background: #f4f6ff; display:flex; align-items:center; justify-content:center; height:100vh; margin:0; }
+  .login-card { background:#fff; padding:30px; border-radius:10px; box-shadow:0 3px 10px rgba(0,0,0,0.1); width:300px; }
+  input { width:100%; padding:10px; margin-bottom:15px; border-radius:6px; border:1px solid #ccc; }
+  button { width:100%; padding:10px; background:#606CF9; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:16px; }
+  button:hover { background:#4e57e0; }
+  .error { color:red; margin-bottom:10px; text-align:center; }
 </style>
 </head>
 <body>
-<div class="auth-container">
-  <div class="auth-box" id="authBox">
-    <button class="theme-toggle" id="themeToggle">🌙</button><!-- LOGIN -->
-<div id="loginSection">
-  <h2 class="auth-title">Welcome Back</h2>
-  <p class="auth-desc">Log in to continue your journey.</p>
-  <div class="input-group">
-    <label>Email</label>
-    <input type="email" id="loginEmail" placeholder="Enter your email" required/>
-  </div>
-  <div class="input-group password-group">
-    <label>Password</label>
-    <input type="password" id="loginPassword" placeholder="Enter your password" required/>
-    <button type="button" class="toggle-password" data-target="loginPassword">👁️</button>
-  </div>
-  <button class="auth-btn" id="loginBtn">Log In</button>
-  <span class="switch-link" id="goSignup">Don't have an account? Sign up</span>
-  <span class="switch-link" id="goForgotPassword">Forgot password?</span>
+<div class="login-card">
+  <h2 style="text-align:center;">Login</h2>
+  <div class="error" id="errorMsg"></div>
+  <input type="email" id="email" placeholder="Email">
+  <input type="password" id="password" placeholder="Password">
+  <button id="loginBtn">Login</button>
 </div>
 
-<!-- SIGNUP -->
-<div id="signupSection" style="display:none;">
-  <h2 class="auth-title">Create Account</h2>
-  <p class="auth-desc">Join us and start your journey in Swipe today.</p>
-  <div class="input-group">
-    <label>Full Name</label>
-    <input type="text" id="signupName" placeholder="Enter your full name" required/>
-  </div>
-  <div class="input-group">
-    <label>Email</label>
-    <input type="email" id="signupEmail" placeholder="Enter your email" required/>
-  </div>
-  <div class="input-group">
-    <label>Gender</label>
-    <select id="signupGender">
-      <option selected disabled>Select gender</option>
-      <option>Male</option>
-      <option>Female</option>
-      <option>Other</option>
-    </select>
-  </div>
-  <div class="input-group password-group">
-    <label>Password</label>
-    <input type="password" id="signupPassword" placeholder="Create a password" required/>
-    <button type="button" class="toggle-password" data-target="signupPassword">👁️</button>
-  </div>
-  <div class="input-group password-group">
-    <label>Confirm Password</label>
-    <input type="password" id="signupConfirmPassword" placeholder="Confirm your password" required/>
-    <button type="button" class="toggle-password" data-target="signupConfirmPassword">👁️</button>
-  </div>
-  <button class="auth-btn" id="registerBtn">Create Account</button>
-  <span class="switch-link" id="goLogin">Already have an account? Log in</span>
-</div>
-
-<!-- OTP VERIFICATION -->
-<div id="otpSection">
-  <h2 class="auth-title">Enter OTP</h2>
-  <p class="auth-desc">Check your email and enter the 6-digit OTP.</p>
-  <div class="input-group">
-    <label>OTP</label>
-    <input type="text" id="otpInput" placeholder="Enter OTP" required/>
-  </div>
-  <button class="auth-btn" id="verifyOtpBtn">Verify OTP</button>
-  <p id="otpMessage" class="message"></p>
-</div>
-
-<!-- FORGOT PASSWORD -->
-<div id="forgotPasswordSection">
-  <h2 class="auth-title">Forgot Password</h2>
-  <p class="auth-desc">Enter your email to reset password.<mark><p>Check your spam for the link</p></mark></p>
-  <div class="input-group">
-    <label>Email</label>
-    <input type="email" id="forgotEmail" placeholder="Enter your email" required/>
-  </div>
-  <button class="auth-btn" id="sendResetBtn">Send Reset Link</button>
-  <p id="resetMessage" class="message"></p>
-  <span class="switch-link" id="backToLogin">Back to Login</span>
-</div>
-
-  </div>
-</div><script type="module">
+<script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
-// Firebase config
+// Firebase Config
 const firebaseConfig = {
-  apiKey: "AIzaSyCRS5SkPr3yGTiHsuY3Bk3IyuS8k88O878",
-  authDomain: "swipe-f90ed.firebaseapp.com",
-  projectId: "swipe-f90ed",
-  storageBucket: "swipe-f90ed.appspot.com",
-  messagingSenderId: "360540214416",
-  appId: "1:360540214416:web:3e92fe77e5c93283d47415",
-  measurementId: "G-4SV32V4N0N"
+  apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
+  authDomain: "chat-34ff3.firebaseapp.com",
+  projectId: "chat-34ff3",
+  storageBucket: "chat-34ff3.appspot.com",
+  messagingSenderId: "391966829170",
+  appId: "1:391966829170:web:2b9fa454e8be176b7930eb",
+  measurementId: "G-81MNVPKD3W"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
 
-// DOM
-const authBox = document.getElementById("authBox");
-const loginSection = document.getElementById("loginSection");
-const signupSection = document.getElementById("signupSection");
-const otpSection = document.getElementById("otpSection");
-const forgotSection = document.getElementById("forgotPasswordSection");
-const otpMessage = document.getElementById("otpMessage");
-const resetMessage = document.getElementById("resetMessage");
+const loginBtn = document.getElementById("loginBtn");
+const errorMsg = document.getElementById("errorMsg");
 
-// Switch forms
-document.getElementById("goSignup").addEventListener("click",()=>{authBox.classList.add("expand");loginSection.style.display="none";signupSection.style.display="block";});
-document.getElementById("goLogin").addEventListener("click",()=>{authBox.classList.remove("expand");signupSection.style.display="none";otpSection.style.display="none";forgotSection.style.display="none";loginSection.style.display="block";});
-document.getElementById("goForgotPassword").addEventListener("click",()=>{loginSection.style.display="none";forgotSection.style.display="block";authBox.classList.add("expand");});
-document.getElementById("backToLogin").addEventListener("click",()=>{forgotSection.style.display="none";loginSection.style.display="block";authBox.classList.remove("expand");});
+loginBtn.addEventListener("click", () => {
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value.trim();
+  errorMsg.textContent = "";
 
-// Dark mode
-document.getElementById("themeToggle").addEventListener("click",()=>{
-  document.body.classList.toggle("dark");
-  document.getElementById("themeToggle").textContent = document.body.classList.contains("dark") ? "☀" : "🌙";
-});
+  if(!email || !password) {
+    errorMsg.textContent = "Please enter email and password.";
+    return;
+  }
 
-// Signup + OTP
-let currentUserId = null;
-
-document.getElementById("registerBtn").addEventListener("click", async ()=>{
-  const fullName = document.getElementById("signupName").value.trim();
-  const email = document.getElementById("signupEmail").value.trim();
-  const gender = document.getElementById("signupGender").value;
-  const password = document.getElementById("signupPassword").value;
-  const confirmPassword = document.getElementById("signupConfirmPassword").value;
-
-  if(!fullName||!email||!gender||!password||!confirmPassword){alert("Fill all fields"); return;}
-  if(password!==confirmPassword){alert("Passwords do not match"); return;}
-
-  try{
-    const otp = Math.floor(100000 + Math.random()*900000).toString();
-    const userCredential = await createUserWithEmailAndPassword(auth,email,password);
-    const user = userCredential.user;
-    currentUserId = user.uid;
-
-    await setDoc(doc(db,"users",user.uid),{
-      fullName,email,gender,createdAt:new Date(),otp
+  signInWithEmailAndPassword(auth, email, password)
+    .then(() => {
+      window.location.href = "all-users.html"; // redirect to users page
+    })
+    .catch(err => {
+      errorMsg.textContent = err.message;
     });
-
-    console.log("OTP (for testing, replace with email):", otp);
-    signupSection.style.display="none";
-    otpSection.style.display="block";
-
-  }catch(e){alert(e.message);}
 });
-
-// Verify OTP
-document.getElementById("verifyOtpBtn").addEventListener("click", async ()=>{
-  const otpInput = document.getElementById("otpInput").value.trim();
-  if(!currentUserId){otpMessage.className="message error";otpMessage.textContent="User not found.";return;}
-  try{
-    const userRef = doc(db,"users",currentUserId);
-    const userSnap = await getDoc(userRef);
-    if(userSnap.exists()){
-      const storedOtp = userSnap.data().otp;
-      if(storedOtp && otpInput===storedOtp){
-        otpMessage.className="message success";
-        otpMessage.textContent="OTP verified! You can log in now.";
-        await setDoc(userRef,{otp:null},{merge:true});
-        setTimeout(()=>{otpSection.style.display="none";loginSection.style.display="block";},1000);
-      }else{
-        otpMessage.className="message error";
-        otpMessage.textContent="Incorrect OTP. Try again.";
-      }
-    }else{
-      otpMessage.className="message error";
-      otpMessage.textContent="User not found.";
-    }
-  }catch(e){otpMessage.className="message error";otpMessage.textContent=e.message;}
-});
-
-// Login
-document.getElementById("loginBtn").addEventListener("click",async ()=>{
-  const email = document.getElementById("loginEmail").value.trim();
-  const password = document.getElementById("loginPassword").value;
-  if(!email||!password){alert("Enter email and password.");return;}
-  try{
-    await signInWithEmailAndPassword(auth,email,password);
-    alert("Logged in successfully!");
-    window.location.href="profile.html";
-  }catch(e){alert(e.message);}
-});
-
-// Password reset
-document.getElementById("sendResetBtn").addEventListener("click",async ()=>{
-  const email = document.getElementById("forgotEmail").value.trim();
-  if(!email){resetMessage.className="message error";resetMessage.textContent="Enter your email.";return;}
-  try{
-    await sendPasswordResetEmail(auth,email);
-    resetMessage.className="message success";
-    resetMessage.textContent="Password reset link sent! Check your email.";
-  }catch(e){resetMessage.className="message error";resetMessage.textContent=e.message;}
-});
-
-// Show/hide password
-document.querySelectorAll(".toggle-password").forEach(btn=>{
-  btn.addEventListener("click",()=>{
-    const target = document.getElementById(btn.dataset.target);
-    if(target.type==="password"){target.type="text";btn.textContent="🙈";}
-    else{target.type="password";btn.textContent="👁️";}
-  });
-});
-</script></body>
-      </html>
+</script>
+</body>
+</html>
