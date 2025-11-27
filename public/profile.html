@@ -2,61 +2,25 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Swipe Chat</title>
+<title>All Users</title>
 <style>
 *{box-sizing:border-box;}
-body{margin:0;font-family:Inter,sans-serif;background:#f4f6ff;color:#1b1b1b;}
+body{margin:0;font-family:Inter,sans-serif;background:#f4f6ff;color:#1b1b1b;transition:0.3s;}
 body.dark{background:#0f1117;color:#fff;}
-nav{display:flex;background:#6e8ef5;color:#fff;}
-nav button{flex:1;padding:14px;border:none;background:inherit;color:inherit;cursor:pointer;font-weight:600;}
-nav button.active{background:#5a77e0;}
 .container{padding:20px;}
-.user, .conversation, .group{padding:10px;border:1px solid #ccc;margin-bottom:8px;border-radius:8px;cursor:pointer;}
-.user:hover, .conversation:hover, .group:hover{background:#e1e6ff;}
-.message-list{height:300px;overflow-y:auto;border:1px solid #ccc;padding:10px;border-radius:8px;margin-bottom:10px;}
-.message{padding:6px 10px;border-radius:6px;margin-bottom:6px;}
-.message.self{background:#6e8ef5;color:#fff;margin-left:auto;}
-.message.other{background:#ddd;color:#000;margin-right:auto;}
-input, button, select{padding:8px;margin:4px 0;border-radius:6px;border:1px solid #ccc;}
-button.send{background:#6e8ef5;color:#fff;border:none;cursor:pointer;}
+.user{padding:12px 16px;margin-bottom:10px;border-radius:8px;background:#fff;cursor:pointer;transition:0.2s;box-shadow:0 3px 10px rgba(0,0,0,0.05);}
+.user:hover{background:#e1e6ff;}
+.theme-toggle{position:fixed;top:14px;right:14px;background:transparent;border:none;font-size:22px;cursor:pointer;}
 </style>
 </head>
-<body><nav>
-  <button id="tabUsers" class="active">All Users</button>
-  <button id="tabConversations">My Conversations</button>
-  <button id="tabDirect">Direct Messages</button>
-  <button id="tabGroups">Group Chat</button>
-</nav><div class="container">
-  <!-- All Users -->
-  <div id="allUsersSection">
-    <h3>All Users</h3>
-    <div id="allUsersList"></div>
-  </div>  <!-- My Conversations -->  <div id="myConversationsSection" style="display:none;">
-    <h3>My Conversations</h3>
-    <div id="myConversationsList"></div>
-  </div>  <!-- Direct Messages -->  <div id="directMessagesSection" style="display:none;">
-    <h3>Chat with <span id="chatWithName">User</span></h3>
-    <div class="message-list" id="directMessageList"></div>
-    <input type="text" id="directMessageInput" placeholder="Type a message"/>
-    <button class="send" id="sendDirectMessage">Send</button>
-  </div>  <!-- Group Chat -->  <div id="groupChatSection" style="display:none;">
-    <h3>Group Chat</h3>
-    <input type="text" id="newGroupName" placeholder="Group name"/>
-    <button id="createGroupBtn">Create Group</button>
-    <h4>Your Groups</h4>
-    <div id="groupsList"></div>
-    <div id="selectedGroupChat" style="display:none;">
-      <h4 id="groupTitle"></h4>
-      <div class="message-list" id="groupMessageList"></div>
-      <input type="text" id="groupMessageInput" placeholder="Type a message"/>
-      <button class="send" id="sendGroupMessage">Send</button>
-    </div>
-  </div>
-</div><script type="module">
+<body><button class="theme-toggle" id="themeToggle">🌙</button>
+
+<h2 style="text-align:center;margin-top:40px;">All Users</h2>
+<div class="container" id="usersList"></div><script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-analytics.js";
-import { getAuth, onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-import { getFirestore, collection, doc, setDoc, getDocs, query, where, onSnapshot, addDoc, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
 // ----- Firebase Config -----
 const firebaseConfig = {
@@ -70,141 +34,36 @@ const firebaseConfig = {
 };
 const app = initializeApp(firebaseConfig);
 const analytics = getAnalytics(app);
-const auth = getAuth(app);
 const db = getFirestore(app);
+const auth = getAuth(app);
 
-// ----- TAB SWITCHING -----
-const tabs = ["allUsers","myConversations","direct","groups"];
-tabs.forEach(tab=>{
-  document.getElementById("tab"+tab.charAt(0).toUpperCase()+tab.slice(1)).addEventListener("click",()=>{
-    tabs.forEach(t=>document.getElementById(t+"Section").style.display="none");
-    document.getElementById(tab+"Section").style.display="block";
-    tabs.forEach(t=>document.getElementById("tab"+t.charAt(0).toUpperCase()+t.slice(1)).classList.remove("active"));
-    document.getElementById("tab"+tab.charAt(0).toUpperCase()+tab.slice(1)).classList.add("active");
-  });
+// Dark/Light Theme Toggle
+const themeToggle = document.getElementById("themeToggle");
+themeToggle.addEventListener("click", () => {
+  document.body.classList.toggle("dark");
+  themeToggle.textContent = document.body.classList.contains("dark") ? "☀" : "🌙";
 });
 
-// ----- LOGIN (for demo, replace with proper auth) -----
+// Display Users
+const usersList = document.getElementById("usersList");
 let currentUser = null;
-signInWithEmailAndPassword(auth,"testuser@example.com","password123").then(u=>console.log("Logged in")).catch(console.error);
+
 onAuthStateChanged(auth,user=>{
-  if(user) currentUser = user;
+  if(user) currentUser=user;
+  loadUsers();
 });
 
-// ----- ALL USERS -----
-const allUsersList = document.getElementById("allUsersList");
-function loadAllUsers(){
-  onSnapshot(collection(db,"users"),snapshot=>{
-    allUsersList.innerHTML="";
+function loadUsers(){
+  onSnapshot(collection(db,"users"), snapshot=>{
+    usersList.innerHTML="";
     snapshot.docs.forEach(doc=>{
-      if(doc.id !== currentUser.uid){
-        const div = document.createElement("div");
-        div.className="user";
-        div.textContent=doc.data().fullName;
-        div.dataset.uid=doc.id;
-        div.addEventListener("click",()=>startDirectChat(doc.id,doc.data().fullName));
-        allUsersList.appendChild(div);
-      }
-    });
-  });
-}
-
-// ----- DIRECT MESSAGES -----
-let activeChatId = null;
-function startDirectChat(uid,name){
-  activeChatId = [currentUser.uid,uid].sort().join("_");
-  document.getElementById("chatWithName").textContent=name;
-  document.getElementById("directMessagesSection").style.display="block";
-  loadDirectMessages();
-}
-const directMessageList = document.getElementById("directMessageList");
-function loadDirectMessages(){
-  if(!activeChatId) return;
-  const messagesRef = collection(db,"messages",activeChatId,"messages");
-  const q = query(messagesRef, orderBy("timestamp"));
-  onSnapshot(q,snapshot=>{
-    directMessageList.innerHTML="";
-    snapshot.docs.forEach(doc=>{
-      const m = doc.data();
+      if(currentUser && doc.id === currentUser.uid) return; // skip self
       const div = document.createElement("div");
-      div.className="message "+(m.senderId===currentUser.uid?"self":"other");
-      div.textContent=m.text;
-      directMessageList.appendChild(div);
-      directMessageList.scrollTop=directMessageList.scrollHeight;
+      div.className="user";
+      div.textContent = doc.data().fullName + " (" + doc.data().email + ")";
+      usersList.appendChild(div);
     });
   });
 }
-document.getElementById("sendDirectMessage").addEventListener("click",async()=>{
-  const text = document.getElementById("directMessageInput").value.trim();
-  if(!text) return;
-  await addDoc(collection(db,"messages",activeChatId,"messages"),{
-    senderId: currentUser.uid,
-    text,
-    timestamp: serverTimestamp()
-  });
-  document.getElementById("directMessageInput").value="";
-});
-
-// ----- GROUP CHAT -----
-const groupsList = document.getElementById("groupsList");
-function loadGroups(){
-  onSnapshot(query(collection(db,"groups"),where("members","array-contains",currentUser.uid)),snapshot=>{
-    groupsList.innerHTML="";
-    snapshot.docs.forEach(doc=>{
-      const div = document.createElement("div");
-      div.className="group";
-      div.textContent=doc.data().name;
-      div.dataset.id=doc.id;
-      div.addEventListener("click",()=>openGroupChat(doc.id,doc.data().name));
-      groupsList.appendChild(div);
-    });
-  });
-}
-document.getElementById("createGroupBtn").addEventListener("click",async()=>{
-  const name = document.getElementById("newGroupName").value.trim();
-  if(!name) return alert("Enter group name");
-  await addDoc(collection(db,"groups"),{
-    name,
-    members:[currentUser.uid]
-  });
-  document.getElementById("newGroupName").value="";
-});
-let activeGroupId = null;
-function openGroupChat(id,name){
-  activeGroupId=id;
-  document.getElementById("groupTitle").textContent=name;
-  document.getElementById("selectedGroupChat").style.display="block";
-  const messagesRef = collection(db,"groups",activeGroupId,"messages");
-  const q = query(messagesRef,orderBy("timestamp"));
-  onSnapshot(q,snapshot=>{
-    const list = document.getElementById("groupMessageList");
-    list.innerHTML="";
-    snapshot.docs.forEach(doc=>{
-      const m = doc.data();
-      const div = document.createElement("div");
-      div.className="message "+(m.senderId===currentUser.uid?"self":"other");
-      div.textContent=m.text;
-      list.appendChild(div);
-      list.scrollTop=list.scrollHeight;
-    });
-  });
-}
-document.getElementById("sendGroupMessage").addEventListener("click",async()=>{
-  const text = document.getElementById("groupMessageInput").value.trim();
-  if(!text) return;
-  await addDoc(collection(db,"groups",activeGroupId,"messages"),{
-    senderId: currentUser.uid,
-    text,
-    timestamp: serverTimestamp()
-  });
-  document.getElementById("groupMessageInput").value="";
-});
-
-// ----- INIT -----
-setTimeout(()=>{
-  loadAllUsers();
-  loadGroups();
-},2000);
-
 </script></body>
 </html>
