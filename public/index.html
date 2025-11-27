@@ -55,7 +55,7 @@ loginBtn.addEventListener("click", () => {
 
   signInWithEmailAndPassword(auth, email, password)
     .then(() => {
-      window.location.href = "all-users.html"; // redirect to users page
+      window.location.href = "profile.html"; // redirect to users page
     })
     .catch(err => {
       errorMsg.textContent = err.message;
