@@ -1,66 +1,103 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Login</title>
-<style>
-  body { font-family: sans-serif; background: #f4f6ff; display:flex; align-items:center; justify-content:center; height:100vh; margin:0; }
-  .login-card { background:#fff; padding:30px; border-radius:10px; box-shadow:0 3px 10px rgba(0,0,0,0.1); width:300px; }
-  input { width:100%; padding:10px; margin-bottom:15px; border-radius:6px; border:1px solid #ccc; }
-  button { width:100%; padding:10px; background:#606CF9; color:#fff; border:none; border-radius:6px; cursor:pointer; font-size:16px; }
-  button:hover { background:#4e57e0; }
-  .error { color:red; margin-bottom:10px; text-align:center; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LocalStorage Chat Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 20px; }
+    .chat-box { width: 100%; max-width: 500px; margin: auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    .messages { height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; border-radius: 8px; background: #fafafa; }
+    .msg { margin: 8px 0; padding: 8px 12px; border-radius: 6px; max-width: 80%; }
+    .sent { background: #d1e7ff; align-self: flex-end; }
+    .received { background: #e7ffd6; }
+    .input-area { display: flex; gap: 10px; margin-top: 15px; }
+    input { flex: 1; padding: 10px; border: 1px solid #aaa; border-radius: 6px; }
+    button { padding: 10px 15px; border: none; background: #007bff; color: white; border-radius: 6px; cursor: pointer; }
+  </style>
 </head>
 <body>
-<div class="login-card">
-  <h2 style="text-align:center;">Login</h2>
-  <div class="error" id="errorMsg"></div>
-  <input type="email" id="email" placeholder="Email">
-  <input type="password" id="password" placeholder="Password">
-  <button id="loginBtn">Login</button>
-</div>
+  <div class="chat-box">
+    <h2>LocalStorage Chat Test</h2>
+    <p style="font-size: 14px; opacity: .7;">User ID is generated automatically. Open this page in 2 different browsers or devices to test.</p>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+    <div class="messages" id="messages"></div>
 
-// Firebase Config
-const firebaseConfig = {
-  apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
-  authDomain: "chat-34ff3.firebaseapp.com",
-  projectId: "chat-34ff3",
-  storageBucket: "chat-34ff3.appspot.com",
-  messagingSenderId: "391966829170",
-  appId: "1:391966829170:web:2b9fa454e8be176b7930eb",
-  measurementId: "G-81MNVPKD3W"
-};
+    <div class="input-area">
+      <input type="text" id="messageInput" placeholder="Type a message..." />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+  <script>
+    // Simulated user identity
+    let userId = localStorage.getItem("chatUserId");
+    if (!userId) {
+      userId = "user_" + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem("chatUserId", userId);
+    }
 
-const loginBtn = document.getElementById("loginBtn");
-const errorMsg = document.getElementById("errorMsg");
+    const messagesEl = document.getElementById("messages");
 
-loginBtn.addEventListener("click", () => {
-  const email = document.getElementById("email").value.trim();
-  const password = document.getElementById("password").value.trim();
-  errorMsg.textContent = "";
+    // Listen for incoming messages
+    window.addEventListener("storage", (event) => {
+      if (event.key === "incomingMessage") {
+        const data = JSON.parse(event.newValue);
+        if (data.to !== userId) return;
 
-  if(!email || !password) {
-    errorMsg.textContent = "Please enter email and password.";
-    return;
-  }
+        saveMessageLocally(data.message, false);
 
-  signInWithEmailAndPassword(auth, email, password)
-    .then(() => {
-      window.location.href = "profile.html"; // redirect to users page
-    })
-    .catch(err => {
-      errorMsg.textContent = err.message;
+        // Delete message from global storage so it doesn't stay in Firebase
+        localStorage.removeItem("incomingMessage");
+
+        renderMessages();
+      }
     });
-});
-</script>
+
+    // Save message locally for this user only
+    function saveMessageLocally(text, sent) {
+      let msgs = JSON.parse(localStorage.getItem("localMessages") || "[]");
+      msgs.push({ text, sent });
+      localStorage.setItem("localMessages", JSON.stringify(msgs));
+    }
+
+    function sendMessage() {
+      const input = document.getElementById("messageInput");
+      if (!input.value.trim()) return;
+
+      const msg = input.value;
+      input.value = "";
+
+      saveMessageLocally(msg, true);
+      renderMessages();
+
+      // Simulate sending to a different user (user_2) — change as needed
+      const receiver = prompt("Send to which user ID?", "user_xxxxx");
+      if (!receiver) return;
+
+      localStorage.setItem("incomingMessage", JSON.stringify({
+        message: msg,
+        from: userId,
+        to: receiver
+      }));
+    }
+
+    function renderMessages() {
+      messagesEl.innerHTML = "";
+      let msgs = JSON.parse(localStorage.getItem("localMessages") || "[]");
+
+      msgs.forEach((m) => {
+        let div = document.createElement("div");
+        div.className = "msg " + (m.sent ? "sent" : "received");
+        div.textContent = m.text;
+        messagesEl.appendChild(div);
+      });
+
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    // Initial load
+    renderMessages();
+  </script>
 </body>
 </html>
