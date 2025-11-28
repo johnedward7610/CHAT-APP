@@ -1,103 +1,210 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LocalStorage Chat Test</title>
-  <style>
-    body { font-family: Arial, sans-serif; background: #f4f4f4; margin: 0; padding: 20px; }
-    .chat-box { width: 100%; max-width: 500px; margin: auto; background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    .messages { height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; border-radius: 8px; background: #fafafa; }
-    .msg { margin: 8px 0; padding: 8px 12px; border-radius: 6px; max-width: 80%; }
-    .sent { background: #d1e7ff; align-self: flex-end; }
-    .received { background: #e7ffd6; }
-    .input-area { display: flex; gap: 10px; margin-top: 15px; }
-    input { flex: 1; padding: 10px; border: 1px solid #aaa; border-radius: 6px; }
-    button { padding: 10px 15px; border: none; background: #007bff; color: white; border-radius: 6px; cursor: pointer; }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Messenger Clone Chat</title>
+
+<style>
+  body {
+    margin: 0;
+    background: #e5e5e5;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+  }
+
+  .chat-container {
+    width: 100%;
+    max-width: 450px;
+    height: 100vh;
+    background: white;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .header {
+    background: #0084ff;
+    color: white;
+    padding: 15px;
+    font-size: 20px;
+    text-align: center;
+    font-weight: bold;
+  }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .msg {
+    max-width: 75%;
+    padding: 10px 14px;
+    border-radius: 18px;
+    font-size: 15px;
+    line-height: 1.3;
+    word-wrap: break-word;
+  }
+
+  .sent {
+    background: #0084ff;
+    color: white;
+    margin-left: auto;
+    border-bottom-right-radius: 4px;
+  }
+
+  .received {
+    background: #f1f0f0;
+    color: black;
+    margin-right: auto;
+    border-bottom-left-radius: 4px;
+  }
+
+  .input-area {
+    display: flex;
+    padding: 10px;
+    gap: 10px;
+    background: #fafafa;
+    border-top: 1px solid #ddd;
+  }
+
+  .input-area input {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    font-size: 15px;
+  }
+
+  .input-area button {
+    background: #0084ff;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 20px;
+    color: white;
+    font-size: 15px;
+    cursor: pointer;
+  }
+</style>
 </head>
 <body>
-  <div class="chat-box">
-    <h2>LocalStorage Chat Test</h2>
-    <p style="font-size: 14px; opacity: .7;">User ID is generated automatically. Open this page in 2 different browsers or devices to test.</p>
 
-    <div class="messages" id="messages"></div>
+<div class="chat-container">
+  <div class="header">Messenger Chat</div>
 
-    <div class="input-area">
-      <input type="text" id="messageInput" placeholder="Type a message..." />
-      <button onclick="sendMessage()">Send</button>
-    </div>
+  <div class="messages" id="messages"></div>
+
+  <div class="input-area">
+    <input id="messageInput" type="text" placeholder="Type a message...">
+    <button onclick="sendMessage()">Send</button>
   </div>
+</div>
 
-  <script>
-    // Simulated user identity
-    let userId = localStorage.getItem("chatUserId");
-    if (!userId) {
-      userId = "user_" + Math.random().toString(36).substr(2, 9);
-      localStorage.setItem("chatUserId", userId);
-    }
+<!-- Firebase Realtime Chat System -->
+<script type="module">
+/* ------------------ Firebase Setup ------------------ */
 
-    const messagesEl = document.getElementById("messages");
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import { getDatabase, ref, push, onChildAdded, remove } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
 
-    // Listen for incoming messages
-    window.addEventListener("storage", (event) => {
-      if (event.key === "incomingMessage") {
-        const data = JSON.parse(event.newValue);
-        if (data.to !== userId) return;
+const firebaseConfig = {
+  apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
+  authDomain: "chat-34ff3.firebaseapp.com",
+  projectId: "chat-34ff3",
+  storageBucket: "chat-34ff3.firebasestorage.app",
+  messagingSenderId: "391966829170",
+  appId: "1:391966829170:web:2b9fa454e8be176b7930eb",
+  measurementId: "G-81MNVPKD3W",
+  databaseURL: "https://chat-34ff3-default-rtdb.firebaseio.com/"
+};
 
-        saveMessageLocally(data.message, false);
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-        // Delete message from global storage so it doesn't stay in Firebase
-        localStorage.removeItem("incomingMessage");
+/* --------------- Generate User ID if not exists --------------- */
+let userId = localStorage.getItem("messengerUserId");
+if (!userId) {
+  userId = "user_" + Math.random().toString(36).substring(2, 9);
+  localStorage.setItem("messengerUserId", userId);
+}
 
-        renderMessages();
-      }
-    });
+console.log("Your ID:", userId);
 
-    // Save message locally for this user only
-    function saveMessageLocally(text, sent) {
-      let msgs = JSON.parse(localStorage.getItem("localMessages") || "[]");
-      msgs.push({ text, sent });
-      localStorage.setItem("localMessages", JSON.stringify(msgs));
-    }
+/* ------------------ DOM Elements ------------------ */
 
-    function sendMessage() {
-      const input = document.getElementById("messageInput");
-      if (!input.value.trim()) return;
+const messagesEl = document.getElementById("messages");
 
-      const msg = input.value;
-      input.value = "";
+/* ------------------ LocalStorage Functions ------------------ */
 
-      saveMessageLocally(msg, true);
-      renderMessages();
+function saveLocal(text, sent) {
+  let msgs = JSON.parse(localStorage.getItem("chatHistory") || "[]");
+  msgs.push({ text, sent });
+  localStorage.setItem("chatHistory", JSON.stringify(msgs));
+}
 
-      // Simulate sending to a different user (user_2) — change as needed
-      const receiver = prompt("Send to which user ID?", "user_xxxxx");
-      if (!receiver) return;
+/* ------------------ Render Messages ------------------ */
 
-      localStorage.setItem("incomingMessage", JSON.stringify({
-        message: msg,
-        from: userId,
-        to: receiver
-      }));
-    }
+function renderMessages() {
+  messagesEl.innerHTML = "";
+  let msgs = JSON.parse(localStorage.getItem("chatHistory") || "[]");
 
-    function renderMessages() {
-      messagesEl.innerHTML = "";
-      let msgs = JSON.parse(localStorage.getItem("localMessages") || "[]");
+  msgs.forEach(m => {
+    let div = document.createElement("div");
+    div.className = "msg " + (m.sent ? "sent" : "received");
+    div.textContent = m.text;
+    messagesEl.appendChild(div);
+  });
 
-      msgs.forEach((m) => {
-        let div = document.createElement("div");
-        div.className = "msg " + (m.sent ? "sent" : "received");
-        div.textContent = m.text;
-        messagesEl.appendChild(div);
-      });
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
 
-      messagesEl.scrollTop = messagesEl.scrollHeight;
-    }
+renderMessages();
 
-    // Initial load
-    renderMessages();
-  </script>
+/* ------------------ Send Message ------------------ */
+
+window.sendMessage = function () {
+  const input = document.getElementById("messageInput");
+  if (!input.value.trim()) return;
+
+  const message = input.value;
+  input.value = "";
+
+  // Save locally (sent)
+  saveLocal(message, true);
+  renderMessages();
+
+  // Ask receiver ID
+  const receiver = prompt("Send to which user ID?", "user_xxxxx");
+  if (!receiver) return;
+
+  // Push message to Firebase inbox of the other user
+  const inboxRef = ref(db, "inbox/" + receiver);
+  push(inboxRef, {
+    text: message,
+    from: userId,
+    timestamp: Date.now()
+  });
+};
+
+/* ------------------ Listen for Incoming Messages ------------------ */
+
+const myInbox = ref(db, "inbox/" + userId);
+
+onChildAdded(myInbox, (snap) => {
+  const data = snap.val();
+
+  // Save to local history (received)
+  saveLocal(data.text, false);
+  renderMessages();
+
+  // Auto delete from Firebase
+  remove(ref(db, "inbox/" + userId + "/" + snap.key));
+});
+</script>
+
 </body>
 </html>
