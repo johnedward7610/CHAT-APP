@@ -97,8 +97,8 @@
   <div class="header">Messenger Firestore Chat</div>
   <div class="messages" id="messages"></div>
   <div class="input-area">
-    <input id="messageInput" type="text" placeholder="Type a message...">
-    <button id="sendBtn">Send</button>
+    <input id="messageInput" type="text" placeholder="Type a message..." disabled>
+    <button id="sendBtn" disabled>Send</button>
   </div>
 </div>
 
@@ -125,6 +125,7 @@
   // ---------------- LocalStorage & DOM ----------------
   const messagesEl = document.getElementById("messages");
   const sendBtn = document.getElementById("sendBtn");
+  const messageInput = document.getElementById("messageInput");
 
   function saveLocal(text, sent) {
     let msgs = JSON.parse(localStorage.getItem("chatHistory") || "[]");
@@ -149,18 +150,26 @@
   // ---------------- Chat ----------------
   let userId, chatPartner, chatId;
 
+  // Disable input until auth completes
+  messageInput.disabled = true;
+  sendBtn.disabled = true;
+
   signInAnonymously(auth).then(res => {
     userId = res.user.uid;
     console.log("Your User ID:", userId);
 
+    // Prompt for partner ID
     chatPartner = prompt("Enter the other user's ID:", "user_xxxxx");
-    if (!chatPartner) chatPartner = "user_xxxxx";
+    if (!chatPartner || chatPartner === userId) chatPartner = "user_xxxxx";
 
-    // Chat ID = sorted combination of two users
     chatId = [userId, chatPartner].sort().join("_");
 
     const messagesRef = collection(db, "chats", chatId, "messages");
     const q = query(messagesRef, orderBy("timestamp"));
+
+    // Enable input and button
+    messageInput.disabled = false;
+    sendBtn.disabled = false;
 
     // Listen for incoming messages
     onSnapshot(q, (snapshot) => {
@@ -171,31 +180,37 @@
             saveLocal(msg.text, false);
             renderMessages();
 
-            // Delete message after receiving
-            await deleteDoc(doc(db, "chats", chatId, "messages", change.doc.id));
+            // Delete after 1 second to ensure it's received
+            setTimeout(() => {
+              deleteDoc(doc(db, "chats", chatId, "messages", change.doc.id));
+            }, 1000);
           }
         }
       });
     });
 
-    // Send message button
+    // Send message
     sendBtn.addEventListener("click", async () => {
-      const input = document.getElementById("messageInput");
-      if (!input.value.trim()) return;
-
-      const text = input.value;
-      input.value = "";
+      if (!messageInput.value.trim()) return;
+      const text = messageInput.value;
+      messageInput.value = "";
 
       saveLocal(text, true);
       renderMessages();
 
-      await addDoc(messagesRef, {
-        text,
-        from: userId,
-        to: chatPartner,
-        timestamp: Date.now()
-      });
+      try {
+        await addDoc(messagesRef, {
+          text,
+          from: userId,
+          to: chatPartner,
+          timestamp: Date.now()
+        });
+      } catch (e) {
+        console.error("Failed to send message:", e);
+      }
     });
+  }).catch(err => {
+    console.error("Auth failed:", err);
   });
 </script>
 
