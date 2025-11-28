@@ -1,11 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Global Messenger Chat</title>
-
-<style>
+<title>Global Messenger Chat</title><style>
   body { margin:0; font-family: Arial; display:flex; justify-content:center; background:#e5e5e5;}
   .chat-container { width:100%; max-width:450px; height:100vh; background:white; display:flex; flex-direction:column;}
   .header { background:#0084ff; color:white; padding:15px; text-align:center; font-weight:bold;}
@@ -16,22 +13,17 @@
   .input-area { display:flex; padding:10px; gap:10px; background:#fafafa; border-top:1px solid #ddd;}
   .input-area input { flex:1; padding:12px; border:1px solid #ccc; border-radius:20px; font-size:15px;}
   .input-area button { background:#0084ff; border:none; padding:10px 16px; border-radius:20px; color:white; font-size:15px; cursor:pointer;}
-</style>
-</head>
-<body>
-
-<div class="chat-container">
+</style></head>
+<body><div class="chat-container">
   <div class="header">Global Messenger Chat</div>
   <div class="messages" id="messages"></div>
   <div class="input-area">
     <input id="messageInput" type="text" placeholder="Type a message..." disabled>
     <button id="sendBtn" disabled>Send</button>
   </div>
-</div>
-
-<script type="module">
+</div><script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, query, onSnapshot, orderBy } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, query, onSnapshot, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
   import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
   const firebaseConfig = {
@@ -84,7 +76,7 @@
     messageInput.disabled = false;
     sendBtn.disabled = false;
 
-    const messagesRef = collection(db, "globalChat", "messages", "all");
+    const messagesRef = collection(db, "messages");
     const q = query(messagesRef, orderBy("timestamp"));
 
     onSnapshot(q, snapshot=>{
@@ -111,7 +103,7 @@
         await addDoc(messagesRef,{
           text,
           from:userId,
-          timestamp: Date.now()
+          timestamp: serverTimestamp()
         });
       }catch(e){
         console.error("Send failed:", e);
@@ -120,7 +112,5 @@
   }).catch(err=>{
     console.error("Auth failed:", err);
   });
-</script>
-
-</body>
+</script></body>
 </html>
