@@ -25,10 +25,10 @@ body { margin:0; font-family: Arial; display:flex; justify-content:center; backg
   </div>
 </div><script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-import { getFirestore, collection, addDoc, query, onSnapshot, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, query, onSnapshot, orderBy, serverTimestamp, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
-// 🔹 Your Firebase configuration
+// 🔹 Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
   authDomain: "chat-34ff3.firebaseapp.com",
@@ -49,7 +49,7 @@ const sendBtn = document.getElementById("sendBtn");
 
 let userId = "anon";
 
-// 🔹 Local message history (optional)
+// 🔹 Local message storage
 function saveLocal(text, sent){
   const msgs = JSON.parse(localStorage.getItem("chatHistory") || "[]");
   msgs.push({ text, sent });
@@ -68,52 +68,52 @@ function renderMessages(){
   messagesEl.scrollTop = messagesEl.scrollHeight;
 }
 
-// Load messages from localStorage initially
+// 🔹 Load messages from localStorage
 renderMessages();
 
-// 🔹 Anonymous sign-in
-signInAnonymously(auth).then(res=>{
-  userId = res.user.uid;
-  console.log("Signed in UID:", userId);
-}).catch(err=>{
-  console.warn("Anonymous auth failed, using fallback UID:", err);
-});
+// 🔹 Anonymous login
+signInAnonymously(auth)
+  .then(res => { userId = res.user.uid; console.log("Signed in UID:", userId); })
+  .catch(err => console.warn("Anonymous auth failed, using fallback UID:", err));
 
 // 🔹 Firestore collection
 const messagesRef = collection(db, "messages");
 const q = query(messagesRef, orderBy("timestamp"));
 
-// 🔹 Real-time listener
-onSnapshot(q, snapshot=>{
-  snapshot.docChanges().forEach(change=>{
+// 🔹 Listen for new messages
+onSnapshot(q, snapshot => {
+  snapshot.docChanges().forEach(async change => {
     if(change.type === "added"){
       const msg = change.doc.data();
-      // Save to localStorage if new
-      saveLocal(msg.text, msg.from === userId);
-      renderMessages();
+      const docId = change.doc.id;
+
+      // Only process messages not from self
+      if(msg.from !== userId){
+        saveLocal(msg.text, false);
+        renderMessages();
+
+        // Delete the message from Firebase after saving locally
+        try {
+          await deleteDoc(doc(db, "messages", docId));
+        } catch(e) { console.error("Delete failed:", e); }
+      }
     }
   });
 });
 
-// 🔹 Send message
-sendBtn.addEventListener("click", async ()=>{
+// 🔹 Send messages
+sendBtn.addEventListener("click", async () => {
   const text = messageInput.value.trim();
   if(!text) return;
   messageInput.value = "";
   saveLocal(text, true);
   renderMessages();
   try{
-    await addDoc(messagesRef, {
-      text,
-      from: userId,
-      timestamp: serverTimestamp()
-    });
+    await addDoc(messagesRef, { text, from: userId, timestamp: serverTimestamp() });
   }catch(e){ console.error("Send failed:", e); }
 });
 
-// Send message with Enter key
-messageInput.addEventListener("keydown", e=>{
-  if(e.key === "Enter") sendBtn.click();
-});
+// 🔹 Send with Enter key
+messageInput.addEventListener("keydown", e => { if(e.key === "Enter") sendBtn.click(); });
 </script></body>
 </html>
