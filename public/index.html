@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Messenger Clone Chat</title>
+<title>Messenger Firestore Chat</title>
 
 <style>
   body {
@@ -94,116 +94,114 @@
 <body>
 
 <div class="chat-container">
-  <div class="header">Messenger Chat</div>
-
+  <div class="header">Messenger Firestore Chat</div>
   <div class="messages" id="messages"></div>
-
   <div class="input-area">
     <input id="messageInput" type="text" placeholder="Type a message...">
     <button onclick="sendMessage()">Send</button>
   </div>
 </div>
 
-<!-- Firebase Realtime Chat System -->
 <script type="module">
-/* ------------------ Firebase Setup ------------------ */
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, query, onSnapshot, orderBy, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-import { getDatabase, ref, push, onChildAdded, remove } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
+  // ----------------- Firebase Config -----------------
+  const firebaseConfig = {
+    apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
+    authDomain: "chat-34ff3.firebaseapp.com",
+    projectId: "chat-34ff3",
+    storageBucket: "chat-34ff3.firebasestorage.app",
+    messagingSenderId: "391966829170",
+    appId: "1:391966829170:web:2b9fa454e8be176b7930eb",
+    measurementId: "G-81MNVPKD3W"
+  };
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
-  authDomain: "chat-34ff3.firebaseapp.com",
-  projectId: "chat-34ff3",
-  storageBucket: "chat-34ff3.firebasestorage.app",
-  messagingSenderId: "391966829170",
-  appId: "1:391966829170:web:2b9fa454e8be176b7930eb",
-  measurementId: "G-81MNVPKD3W",
-  databaseURL: "https://chat-34ff3-default-rtdb.firebaseio.com/"
-};
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-/* --------------- Generate User ID if not exists --------------- */
-let userId = localStorage.getItem("messengerUserId");
-if (!userId) {
-  userId = "user_" + Math.random().toString(36).substring(2, 9);
-  localStorage.setItem("messengerUserId", userId);
-}
-
-console.log("Your ID:", userId);
-
-/* ------------------ DOM Elements ------------------ */
-
-const messagesEl = document.getElementById("messages");
-
-/* ------------------ LocalStorage Functions ------------------ */
-
-function saveLocal(text, sent) {
-  let msgs = JSON.parse(localStorage.getItem("chatHistory") || "[]");
-  msgs.push({ text, sent });
-  localStorage.setItem("chatHistory", JSON.stringify(msgs));
-}
-
-/* ------------------ Render Messages ------------------ */
-
-function renderMessages() {
-  messagesEl.innerHTML = "";
-  let msgs = JSON.parse(localStorage.getItem("chatHistory") || "[]");
-
-  msgs.forEach(m => {
-    let div = document.createElement("div");
-    div.className = "msg " + (m.sent ? "sent" : "received");
-    div.textContent = m.text;
-    messagesEl.appendChild(div);
+  // ----------------- User Auth -----------------
+  let userId;
+  signInAnonymously(auth).then(res => {
+    userId = res.user.uid;
+    console.log("User ID:", userId);
   });
 
-  messagesEl.scrollTop = messagesEl.scrollHeight;
-}
+  // ----------------- LocalStorage Setup -----------------
+  const messagesEl = document.getElementById("messages");
 
-renderMessages();
+  function saveLocal(text, sent) {
+    let msgs = JSON.parse(localStorage.getItem("chatHistory") || "[]");
+    msgs.push({ text, sent });
+    localStorage.setItem("chatHistory", JSON.stringify(msgs));
+  }
 
-/* ------------------ Send Message ------------------ */
+  function renderMessages() {
+    messagesEl.innerHTML = "";
+    let msgs = JSON.parse(localStorage.getItem("chatHistory") || "[]");
 
-window.sendMessage = function () {
-  const input = document.getElementById("messageInput");
-  if (!input.value.trim()) return;
+    msgs.forEach(m => {
+      let div = document.createElement("div");
+      div.className = "msg " + (m.sent ? "sent" : "received");
+      div.textContent = m.text;
+      messagesEl.appendChild(div);
+    });
 
-  const message = input.value;
-  input.value = "";
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
 
-  // Save locally (sent)
-  saveLocal(message, true);
   renderMessages();
 
-  // Ask receiver ID
-  const receiver = prompt("Send to which user ID?", "user_xxxxx");
-  if (!receiver) return;
+  // ----------------- Chat System -----------------
+  let chatPartner = prompt("Enter the other user's ID:", "user_xxxxx"); // Change dynamically
 
-  // Push message to Firebase inbox of the other user
-  const inboxRef = ref(db, "inbox/" + receiver);
-  push(inboxRef, {
-    text: message,
-    from: userId,
-    timestamp: Date.now()
+  function getChatId(uid1, uid2) {
+    return [uid1, uid2].sort().join("_");
+  }
+
+  const chatId = getChatId(userId, chatPartner);
+
+  const messagesRef = collection(db, "chats", chatId, "messages");
+  const q = query(messagesRef, orderBy("timestamp"));
+
+  // Listen for incoming messages
+  onSnapshot(q, (snapshot) => {
+    snapshot.docChanges().forEach(async (change) => {
+      if (change.type === "added") {
+        const msg = change.doc.data();
+
+        if (msg.from !== userId) {
+          saveLocal(msg.text, false);
+          renderMessages();
+
+          // Auto-delete after receiving
+          await deleteDoc(doc(db, "chats", chatId, "messages", change.doc.id));
+        }
+      }
+    });
   });
-};
 
-/* ------------------ Listen for Incoming Messages ------------------ */
+  // ----------------- Send Message -----------------
+  window.sendMessage = async function () {
+    const input = document.getElementById("messageInput");
+    if (!input.value.trim()) return;
 
-const myInbox = ref(db, "inbox/" + userId);
+    const text = input.value;
+    input.value = "";
 
-onChildAdded(myInbox, (snap) => {
-  const data = snap.val();
+    saveLocal(text, true);
+    renderMessages();
 
-  // Save to local history (received)
-  saveLocal(data.text, false);
-  renderMessages();
+    await addDoc(messagesRef, {
+      text,
+      from: userId,
+      to: chatPartner,
+      timestamp: Date.now()
+    });
+  };
 
-  // Auto delete from Firebase
-  remove(ref(db, "inbox/" + userId + "/" + snap.key));
-});
 </script>
 
 </body>
