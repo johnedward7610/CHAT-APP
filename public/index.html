@@ -24,21 +24,13 @@ body { margin:0; font-family: Arial; display:flex; justify-content:center; backg
     <input id="messageInput" type="text" placeholder="Type a message..." disabled>
     <button id="sendBtn" disabled>Send</button>
   </div>
-</div><script type="module">
+</div>
+<script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import { getFirestore, collection, addDoc, query, onSnapshot, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
-  authDomain: "chat-34ff3.firebaseapp.com",
-  projectId: "chat-34ff3",
-  storageBucket: "chat-34ff3.appspot.com",
-  messagingSenderId: "391966829170",
-  appId: "1:391966829170:web:2b9fa454e8be176b7930eb",
-  measurementId: "G-81MNVPKD3W"
-};
-
+const firebaseConfig = { /* your config */ };
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
@@ -47,45 +39,39 @@ const messagesEl = document.getElementById("messages");
 const sendBtn = document.getElementById("sendBtn");
 const messageInput = document.getElementById("messageInput");
 
-let userId;
+messageInput.disabled = false; // allow typing immediately
+sendBtn.disabled = false;
 
-// Enable UI after login
-signInAnonymously(auth).then(res=>{
-  userId = res.user.uid;
-  messageInput.disabled = false;
-  sendBtn.disabled = false;
+let userId = null;
 
-  const messagesRef = collection(db, "messages");
-  const q = query(messagesRef, orderBy("timestamp"));
+signInAnonymously(auth)
+  .then(res => { userId = res.user.uid; console.log("UID:", userId); })
+  .catch(err => { console.error("Auth failed", err); });
 
-  onSnapshot(q, snapshot=>{
-    snapshot.docChanges().forEach(change=>{
-      if(change.type === "added"){
-        const msg = change.doc.data();
-        const div = document.createElement("div");
-        div.className = "msg " + (msg.from === userId ? "sent":"received");
-        div.textContent = msg.text;
-        messagesEl.appendChild(div);
-        messagesEl.scrollTop = messagesEl.scrollHeight;
-      }
-    });
+const messagesRef = collection(db, "messages");
+const q = query(messagesRef, orderBy("timestamp"));
+
+onSnapshot(q, snapshot => {
+  snapshot.docChanges().forEach(change => {
+    if (change.type === "added") {
+      const msg = change.doc.data();
+      const div = document.createElement("div");
+      div.className = "msg " + ((msg.from === userId) ? "sent":"received");
+      div.textContent = msg.text;
+      messagesEl.appendChild(div);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
   });
-
-  sendBtn.addEventListener("click", async ()=>{
-    const text = messageInput.value.trim();
-    if(!text) return;
-    messageInput.value = "";
-    try{
-      await addDoc(messagesRef, {
-        text,
-        from: userId,
-        timestamp: serverTimestamp()
-      });
-    }catch(e){ console.error("Send failed:", e); }
-  });
-
-}).catch(err=>{
-  console.error("Auth failed:", err);
 });
-</script></body>
+
+sendBtn.addEventListener("click", async () => {
+  const text = messageInput.value.trim();
+  if(!text) return;
+  messageInput.value = "";
+  try {
+    await addDoc(messagesRef, { text, from: userId || "anon", timestamp: serverTimestamp() });
+  } catch(e) { console.error("Send failed", e); }
+});
+  </script>
+</body>
 </html>
