@@ -2,19 +2,22 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Global Messenger Chat</title><style>
-  body { margin:0; font-family: Arial; display:flex; justify-content:center; background:#e5e5e5;}
-  .chat-container { width:100%; max-width:450px; height:100vh; background:white; display:flex; flex-direction:column;}
-  .header { background:#0084ff; color:white; padding:15px; text-align:center; font-weight:bold;}
-  .messages { flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:8px;}
-  .msg { max-width:75%; padding:10px 14px; border-radius:18px; font-size:15px; word-wrap:break-word;}
-  .sent { background:#0084ff; color:white; margin-left:auto; border-bottom-right-radius:4px;}
-  .received { background:#f1f0f0; color:black; margin-right:auto; border-bottom-left-radius:4px;}
-  .input-area { display:flex; padding:10px; gap:10px; background:#fafafa; border-top:1px solid #ddd;}
-  .input-area input { flex:1; padding:12px; border:1px solid #ccc; border-radius:20px; font-size:15px;}
-  .input-area button { background:#0084ff; border:none; padding:10px 16px; border-radius:20px; color:white; font-size:15px; cursor:pointer;}
-</style></head>
-<body><div class="chat-container">
+<title>Global Messenger Chat</title>
+<style>
+body { margin:0; font-family: Arial; display:flex; justify-content:center; background:#e5e5e5;}
+.chat-container { width:100%; max-width:450px; height:100vh; background:white; display:flex; flex-direction:column;}
+.header { background:#0084ff; color:white; padding:15px; text-align:center; font-weight:bold;}
+.messages { flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:8px;}
+.msg { max-width:75%; padding:10px 14px; border-radius:18px; font-size:15px; word-wrap:break-word;}
+.sent { background:#0084ff; color:white; margin-left:auto; border-bottom-right-radius:4px;}
+.received { background:#f1f0f0; color:black; margin-right:auto; border-bottom-left-radius:4px;}
+.input-area { display:flex; padding:10px; gap:10px; background:#fafafa; border-top:1px solid #ddd;}
+.input-area input { flex:1; padding:12px; border:1px solid #ccc; border-radius:20px; font-size:15px;}
+.input-area button { background:#0084ff; border:none; padding:10px 16px; border-radius:20px; color:white; font-size:15px; cursor:pointer;}
+</style>
+</head>
+<body>
+<div class="chat-container">
   <div class="header">Global Messenger Chat</div>
   <div class="messages" id="messages"></div>
   <div class="input-area">
@@ -22,95 +25,67 @@
     <button id="sendBtn" disabled>Send</button>
   </div>
 </div><script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, query, onSnapshot, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-  import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import { getFirestore, collection, addDoc, query, onSnapshot, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
-    authDomain: "chat-34ff3.firebaseapp.com",
-    projectId: "chat-34ff3",
-    storageBucket: "chat-34ff3.appspot.com",
-    messagingSenderId: "391966829170",
-    appId: "1:391966829170:web:2b9fa454e8be176b7930eb",
-    measurementId: "G-81MNVPKD3W"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
+  authDomain: "chat-34ff3.firebaseapp.com",
+  projectId: "chat-34ff3",
+  storageBucket: "chat-34ff3.appspot.com",
+  messagingSenderId: "391966829170",
+  appId: "1:391966829170:web:2b9fa454e8be176b7930eb",
+  measurementId: "G-81MNVPKD3W"
+};
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const auth = getAuth(app);
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
 
-  const messagesEl = document.getElementById("messages");
-  const sendBtn = document.getElementById("sendBtn");
-  const messageInput = document.getElementById("messageInput");
+const messagesEl = document.getElementById("messages");
+const sendBtn = document.getElementById("sendBtn");
+const messageInput = document.getElementById("messageInput");
 
-  let userId;
+let userId;
 
-  function saveLocal(text, sent){
-    let msgs = JSON.parse(localStorage.getItem("chatHistory") || "[]");
-    msgs.push({ text, sent });
-    localStorage.setItem("chatHistory", JSON.stringify(msgs));
-  }
+// Enable UI after login
+signInAnonymously(auth).then(res=>{
+  userId = res.user.uid;
+  messageInput.disabled = false;
+  sendBtn.disabled = false;
 
-  function renderMessages(){
-    messagesEl.innerHTML = "";
-    let msgs = JSON.parse(localStorage.getItem("chatHistory") || "[]");
-    msgs.forEach(m=>{
-      const div = document.createElement("div");
-      div.className = "msg "+(m.sent?"sent":"received");
-      div.textContent = m.text;
-      messagesEl.appendChild(div);
-    });
-    messagesEl.scrollTop = messagesEl.scrollHeight;
-  }
+  const messagesRef = collection(db, "messages");
+  const q = query(messagesRef, orderBy("timestamp"));
 
-  renderMessages();
-
-  messageInput.disabled = true;
-  sendBtn.disabled = true;
-
-  signInAnonymously(auth).then(res=>{
-    userId = res.user.uid;
-    console.log("Your ID:", userId);
-
-    messageInput.disabled = false;
-    sendBtn.disabled = false;
-
-    const messagesRef = collection(db, "messages");
-    const q = query(messagesRef, orderBy("timestamp"));
-
-    onSnapshot(q, snapshot=>{
-      snapshot.docChanges().forEach(change=>{
-        if(change.type==="added"){
-          const msg = change.doc.data();
-          if(msg.from !== userId){
-            saveLocal(msg.text, false);
-            renderMessages();
-          }
-        }
-      });
-    });
-
-    sendBtn.addEventListener("click", async ()=>{
-      const text = messageInput.value.trim();
-      if(!text) return;
-      messageInput.value = "";
-
-      saveLocal(text, true);
-      renderMessages();
-
-      try{
-        await addDoc(messagesRef,{
-          text,
-          from:userId,
-          timestamp: serverTimestamp()
-        });
-      }catch(e){
-        console.error("Send failed:", e);
+  onSnapshot(q, snapshot=>{
+    snapshot.docChanges().forEach(change=>{
+      if(change.type === "added"){
+        const msg = change.doc.data();
+        const div = document.createElement("div");
+        div.className = "msg " + (msg.from === userId ? "sent":"received");
+        div.textContent = msg.text;
+        messagesEl.appendChild(div);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
       }
     });
-  }).catch(err=>{
-    console.error("Auth failed:", err);
   });
+
+  sendBtn.addEventListener("click", async ()=>{
+    const text = messageInput.value.trim();
+    if(!text) return;
+    messageInput.value = "";
+    try{
+      await addDoc(messagesRef, {
+        text,
+        from: userId,
+        timestamp: serverTimestamp()
+      });
+    }catch(e){ console.error("Send failed:", e); }
+  });
+
+}).catch(err=>{
+  console.error("Auth failed:", err);
+});
 </script></body>
 </html>
