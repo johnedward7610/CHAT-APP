@@ -98,7 +98,7 @@
   <div class="messages" id="messages"></div>
   <div class="input-area">
     <input id="messageInput" type="text" placeholder="Type a message...">
-    <button onclick="sendMessage()">Send</button>
+    <button id="sendBtn">Send</button>
   </div>
 </div>
 
@@ -107,7 +107,7 @@
   import { getFirestore, collection, addDoc, query, onSnapshot, orderBy, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
   import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
-  // ----------------- Firebase Config -----------------
+  // ---------------- Firebase Config ----------------
   const firebaseConfig = {
     apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
     authDomain: "chat-34ff3.firebaseapp.com",
@@ -122,15 +122,9 @@
   const db = getFirestore(app);
   const auth = getAuth(app);
 
-  // ----------------- User Auth -----------------
-  let userId;
-  signInAnonymously(auth).then(res => {
-    userId = res.user.uid;
-    console.log("User ID:", userId);
-  });
-
-  // ----------------- LocalStorage Setup -----------------
+  // ---------------- LocalStorage & DOM ----------------
   const messagesEl = document.getElementById("messages");
+  const sendBtn = document.getElementById("sendBtn");
 
   function saveLocal(text, sent) {
     let msgs = JSON.parse(localStorage.getItem("chatHistory") || "[]");
@@ -141,67 +135,68 @@
   function renderMessages() {
     messagesEl.innerHTML = "";
     let msgs = JSON.parse(localStorage.getItem("chatHistory") || "[]");
-
     msgs.forEach(m => {
       let div = document.createElement("div");
       div.className = "msg " + (m.sent ? "sent" : "received");
       div.textContent = m.text;
       messagesEl.appendChild(div);
     });
-
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
   renderMessages();
 
-  // ----------------- Chat System -----------------
-  let chatPartner = prompt("Enter the other user's ID:", "user_xxxxx"); // Change dynamically
+  // ---------------- Chat ----------------
+  let userId, chatPartner, chatId;
 
-  function getChatId(uid1, uid2) {
-    return [uid1, uid2].sort().join("_");
-  }
+  signInAnonymously(auth).then(res => {
+    userId = res.user.uid;
+    console.log("Your User ID:", userId);
 
-  const chatId = getChatId(userId, chatPartner);
+    chatPartner = prompt("Enter the other user's ID:", "user_xxxxx");
+    if (!chatPartner) chatPartner = "user_xxxxx";
 
-  const messagesRef = collection(db, "chats", chatId, "messages");
-  const q = query(messagesRef, orderBy("timestamp"));
+    // Chat ID = sorted combination of two users
+    chatId = [userId, chatPartner].sort().join("_");
 
-  // Listen for incoming messages
-  onSnapshot(q, (snapshot) => {
-    snapshot.docChanges().forEach(async (change) => {
-      if (change.type === "added") {
-        const msg = change.doc.data();
+    const messagesRef = collection(db, "chats", chatId, "messages");
+    const q = query(messagesRef, orderBy("timestamp"));
 
-        if (msg.from !== userId) {
-          saveLocal(msg.text, false);
-          renderMessages();
+    // Listen for incoming messages
+    onSnapshot(q, (snapshot) => {
+      snapshot.docChanges().forEach(async (change) => {
+        if (change.type === "added") {
+          const msg = change.doc.data();
+          if (msg.from !== userId) {
+            saveLocal(msg.text, false);
+            renderMessages();
 
-          // Auto-delete after receiving
-          await deleteDoc(doc(db, "chats", chatId, "messages", change.doc.id));
+            // Delete message after receiving
+            await deleteDoc(doc(db, "chats", chatId, "messages", change.doc.id));
+          }
         }
-      }
+      });
+    });
+
+    // Send message button
+    sendBtn.addEventListener("click", async () => {
+      const input = document.getElementById("messageInput");
+      if (!input.value.trim()) return;
+
+      const text = input.value;
+      input.value = "";
+
+      saveLocal(text, true);
+      renderMessages();
+
+      await addDoc(messagesRef, {
+        text,
+        from: userId,
+        to: chatPartner,
+        timestamp: Date.now()
+      });
     });
   });
-
-  // ----------------- Send Message -----------------
-  window.sendMessage = async function () {
-    const input = document.getElementById("messageInput");
-    if (!input.value.trim()) return;
-
-    const text = input.value;
-    input.value = "";
-
-    saveLocal(text, true);
-    renderMessages();
-
-    await addDoc(messagesRef, {
-      text,
-      from: userId,
-      to: chatPartner,
-      timestamp: Date.now()
-    });
-  };
-
 </script>
 
 </body>
