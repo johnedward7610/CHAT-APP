@@ -1,119 +1,466 @@
-<!DOCTYPE html><html lang="en">
+<!doctype html>
+<html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Global Messenger Chat</title>
-<style>
-body { margin:0; font-family: Arial; display:flex; justify-content:center; background:#e5e5e5;}
-.chat-container { width:100%; max-width:450px; height:100vh; background:white; display:flex; flex-direction:column;}
-.header { background:#0084ff; color:white; padding:15px; text-align:center; font-weight:bold;}
-.messages { flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:8px;}
-.msg { max-width:75%; padding:10px 14px; border-radius:18px; font-size:15px; word-wrap:break-word;}
-.sent { background:#0084ff; color:white; margin-left:auto; border-bottom-right-radius:4px;}
-.received { background:#f1f0f0; color:black; margin-right:auto; border-bottom-left-radius:4px;}
-.input-area { display:flex; padding:10px; gap:10px; background:#fafafa; border-top:1px solid #ddd;}
-.input-area input { flex:1; padding:12px; border:1px solid #ccc; border-radius:20px; font-size:15px;}
-.input-area button { background:#0084ff; border:none; padding:10px 16px; border-radius:20px; color:white; font-size:15px; cursor:pointer;}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>QuickChat — Firebase Email Auth Example</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--muted:#9aa4b2;--accent:#6ee7b7}
+    *{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,#071124 0%,#071827 100%);color:#e6eef6}
+    .app{max-width:980px;margin:28px auto;padding:18px}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+    header h1{margin:0;font-size:20px}
+    nav button{margin-left:8px}
+    .card{background:rgba(255,255,255,0.03);padding:18px;border-radius:12px;box-shadow:0 4px 18px rgba(2,6,23,0.6)}
+    .hidden{display:none}
+    input,button,textarea{font:inherit}
+    input,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:inherit}
+    .row{display:flex;gap:12px}
+    .col{flex:1}
+    .users-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:12px}
+    .user{padding:12px;border-radius:10px;background:rgba(255,255,255,0.02);cursor:pointer}
+    .messages{height:360px;overflow:auto;padding:10px;border-radius:8px;background:rgba(0,0,0,0.2)}
+    .message{margin-bottom:8px}
+    .me{color:var(--accent)}
+    .controls{display:flex;gap:8px;margin-top:8px}
+    .small{font-size:13px;color:var(--muted)}
+    .btn{padding:8px 12px;border-radius:10px;border:none;background:#102434;color:#dff7ee;cursor:pointer}
+    .danger{background:#b94a4a}
+    .badge{background:rgba(0,0,0,0.35);padding:6px 8px;border-radius:8px}
+    .center{display:flex;align-items:center;justify-content:center}
+    .timer{font-weight:700}
+  </style>
 </head>
-<body><div class="chat-container">
-  <div class="header">Global Messenger Chat</div>
-  <div class="messages" id="messages"></div>
-  <div class="input-area">
-    <input id="messageInput" type="text" placeholder="Type a message...">
-    <button id="sendBtn">Send</button>
+<body>
+  <div class="app">
+    <header>
+      <h1>QuickChat — Firebase Email Auth (demo)</h1>
+      <nav>
+        <span id="userEmail" class="small"></span>
+        <button id="nav-home" class="btn">Home</button>
+        <button id="nav-search" class="btn">Search</button>
+        <button id="nav-quick" class="btn">Quick Chat</button>
+        <button id="nav-logout" class="btn danger">Logout</button>
+      </nav>
+    </header>
+
+    <!-- AUTH: Signup / Login -->
+    <section id="auth" class="card">
+      <div id="auth-forms" class="row">
+        <div class="col">
+          <h3>Login</h3>
+          <input id="login-email" placeholder="Email" />
+          <input id="login-password" placeholder="Password" type="password" />
+          <div style="margin-top:8px;display:flex;gap:8px">
+            <button id="btn-login" class="btn">Login</button>
+            <button id="show-signup" class="btn">Create account</button>
+          </div>
+        </div>
+        <div class="col">
+          <h3>Signup</h3>
+          <input id="signup-email" placeholder="Email" />
+          <input id="signup-password" placeholder="Password (6+ chars)" type="password" />
+          <input id="signup-displayName" placeholder="Display name" />
+          <div style="margin-top:8px">
+            <button id="btn-signup" class="btn">Sign up</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOME: users list -->
+    <section id="home" class="card hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <h3>All users</h3>
+        <div class="badge">Quick tries left: <span id="tries-left">-</span></div>
+      </div>
+      <div id="users" class="users-list"></div>
+    </section>
+
+    <!-- SEARCH -->
+    <section id="search" class="card hidden">
+      <h3>Search users</h3>
+      <input id="search-input" placeholder="Search by email or name" />
+      <div id="search-results" class="users-list"></div>
+    </section>
+
+    <!-- CHAT ROOM -->
+    <section id="chat" class="card hidden">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div>
+          <strong id="chat-with-name">Conversation</strong>
+          <div class="small" id="chat-with-email"></div>
+        </div>
+        <div class="small">Chat ID: <span id="chat-id"></span></div>
+      </div>
+      <div class="messages" id="messages"></div>
+      <div class="controls">
+        <input id="message-input" placeholder="Type a message" />
+        <button id="send-btn" class="btn">Send</button>
+      </div>
+    </section>
+
+    <!-- QUICK CHAT -->
+    <section id="quick" class="card hidden">
+      <h3>Quick Chat (random)</h3>
+      <div class="small">Try to find a random partner. You have <span id="qc-tries">10</span> tries per 24h.</div>
+      <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+        <button id="find-random" class="btn">Find match</button>
+        <button id="ad-grant" class="btn">Watch reward ad (replenish tries)</button>
+        <div id="ad-timer" class="small"></div>
+      </div>
+
+      <div id="quick-session" class="hidden" style="margin-top:12px">
+        <div class="small">Matched with <strong id="quick-peer-name"></strong> — <span class="timer" id="quick-timer">01:00</span></div>
+        <div class="messages" id="quick-messages"></div>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button id="qc-like" class="btn">Like to continue</button>
+          <button id="qc-end" class="btn danger">End</button>
+        </div>
+      </div>
+    </section>
+
+    <footer style="margin-top:18px" class="small center">Fill your Firebase config in the script and deploy to host — demo implementation.</footer>
   </div>
-</div><script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-import { getFirestore, collection, addDoc, query, onSnapshot, orderBy, serverTimestamp, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
-// 🔹 Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
-  authDomain: "chat-34ff3.firebaseapp.com",
-  projectId: "chat-34ff3",
-  storageBucket: "chat-34ff3.appspot.com",
-  messagingSenderId: "391966829170",
-  appId: "1:391966829170:web:2b9fa454e8be176b7930eb",
-  measurementId: "G-81MNVPKD3W"
-};
+  <script type="module">
+    // ---------- FIREBASE SETUP (fill your config) ----------
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, collection, addDoc, query, where, getDocs, onSnapshot, orderBy, limit, serverTimestamp, updateDoc, arrayUnion, runTransaction } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
+    const firebaseConfig = {
+      // <-- REPLACE WITH YOUR FIREBASE CONFIG -->
+      apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
+      authDomain: "chat-34ff3.firebaseapp.com",
+      projectId: "chat-34ff3",
+      storageBucket: "chat-34ff3.appspot.com",
+      messagingSenderId: "391966829170",
+      appId: "1:391966829170:web:2b9fa454e8be176b7930eb"
+    };
 
-const messagesEl = document.getElementById("messages");
-const messageInput = document.getElementById("messageInput");
-const sendBtn = document.getElementById("sendBtn");
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-let userId = "anon";
+    // ---------- UI Elements ----------
+    const authSection = document.getElementById('auth');
+    const homeSection = document.getElementById('home');
+    const searchSection = document.getElementById('search');
+    const chatSection = document.getElementById('chat');
+    const quickSection = document.getElementById('quick');
 
-// 🔹 Local message storage
-function saveLocal(text, sent){
-  const msgs = JSON.parse(localStorage.getItem("chatHistory") || "[]");
-  msgs.push({ text, sent });
-  localStorage.setItem("chatHistory", JSON.stringify(msgs));
-}
+    const userEmailSpan = document.getElementById('userEmail');
+    const navHome = document.getElementById('nav-home');
+    const navSearch = document.getElementById('nav-search');
+    const navQuick = document.getElementById('nav-quick');
+    const navLogout = document.getElementById('nav-logout');
 
-function renderMessages(){
-  messagesEl.innerHTML = "";
-  const msgs = JSON.parse(localStorage.getItem("chatHistory") || "[]");
-  msgs.forEach(m => {
-    const div = document.createElement("div");
-    div.className = "msg " + (m.sent ? "sent":"received");
-    div.textContent = m.text;
-    messagesEl.appendChild(div);
-  });
-  messagesEl.scrollTop = messagesEl.scrollHeight;
-}
+    const btnLogin = document.getElementById('btn-login');
+    const btnSignup = document.getElementById('btn-signup');
+    const showSignup = document.getElementById('show-signup');
 
-// 🔹 Load messages from localStorage
-renderMessages();
+    const usersDiv = document.getElementById('users');
+    const searchInput = document.getElementById('search-input');
+    const searchResults = document.getElementById('search-results');
 
-// 🔹 Anonymous login
-signInAnonymously(auth)
-  .then(res => { userId = res.user.uid; console.log("Signed in UID:", userId); })
-  .catch(err => console.warn("Anonymous auth failed, using fallback UID:", err));
+    const chatWithName = document.getElementById('chat-with-name');
+    const chatWithEmail = document.getElementById('chat-with-email');
+    const messagesDiv = document.getElementById('messages');
+    const messageInput = document.getElementById('message-input');
+    const sendBtn = document.getElementById('send-btn');
+    const chatIdSpan = document.getElementById('chat-id');
 
-// 🔹 Firestore collection
-const messagesRef = collection(db, "messages");
-const q = query(messagesRef, orderBy("timestamp"));
+    const triesLeftSpan = document.getElementById('tries-left');
 
-// 🔹 Listen for new messages
-onSnapshot(q, snapshot => {
-  snapshot.docChanges().forEach(async change => {
-    if(change.type === "added"){
-      const msg = change.doc.data();
-      const docId = change.doc.id;
+    const findRandomBtn = document.getElementById('find-random');
+    const adGrantBtn = document.getElementById('ad-grant');
+    const qcTriesSpan = document.getElementById('qc-tries');
+    const quickSession = document.getElementById('quick-session');
+    const quickPeerName = document.getElementById('quick-peer-name');
+    const quickTimer = document.getElementById('quick-timer');
+    const quickMessagesDiv = document.getElementById('quick-messages');
+    const qcLike = document.getElementById('qc-like');
+    const qcEnd = document.getElementById('qc-end');
+    const adTimer = document.getElementById('ad-timer');
 
-      // Only process messages not from self
-      if(msg.from !== userId){
-        saveLocal(msg.text, false);
-        renderMessages();
+    // ---------- Helpers ----------
+    function show(section){ [authSection,homeSection,searchSection,chatSection,quickSection].forEach(s=>s.classList.add('hidden')); section.classList.remove('hidden'); }
 
-        // Delete the message from Firebase after saving locally
-        try {
-          await deleteDoc(doc(db, "messages", docId));
-        } catch(e) { console.error("Delete failed:", e); }
+    function uid(){ return auth.currentUser?.uid }
+
+    // ---------- Auth flows ----------
+    btnSignup.addEventListener('click', async ()=>{
+      const email = document.getElementById('signup-email').value.trim();
+      const password = document.getElementById('signup-password').value;
+      const displayName = document.getElementById('signup-displayName').value.trim() || email.split('@')[0];
+      if(!email || !password) return alert('enter email+password');
+      const cred = await createUserWithEmailAndPassword(auth,email,password);
+      await updateProfile(cred.user,{displayName});
+      // create user record
+      await setDoc(doc(db,'users',cred.user.uid),{email,displayName,createdAt:serverTimestamp(),quickTries:10,quickResetAt:Date.now()});
+    });
+
+    btnLogin.addEventListener('click', async ()=>{
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      if(!email||!password) return alert('enter email+password');
+      await signInWithEmailAndPassword(auth,email,password);
+    });
+
+    navLogout.addEventListener('click', async ()=>{ await signOut(auth); location.reload(); });
+
+    showSignup.addEventListener('click', ()=>{ show(authSection); });
+
+    // ---------- Navigation ----------
+    navHome.addEventListener('click', ()=>{ show(homeSection); loadUsers(); });
+    navSearch.addEventListener('click', ()=>{ show(searchSection); });
+    navQuick.addEventListener('click', ()=>{ show(quickSection); updateQuickUI(); });
+
+    // ---------- Load users (home) ----------
+    async function loadUsers(){
+      usersDiv.innerHTML = '<div class="small">Loading...</div>';
+      const q = query(collection(db,'users'), orderBy('displayName'));
+      const snap = await getDocs(q);
+      usersDiv.innerHTML = '';
+      snap.forEach(docSnap=>{
+        const data = docSnap.data();
+        const el = document.createElement('div'); el.className='user';
+        el.innerHTML = `<strong>${escapeHtml(data.displayName||'')}</strong><div class="small">${escapeHtml(data.email||'')}</div>`;
+        el.onclick = ()=>openChatWith(docSnap.id, data);
+        usersDiv.appendChild(el);
+      });
+    }
+
+    // ---------- Search ----------
+    searchInput.addEventListener('input', async (e)=>{
+      const v = e.target.value.trim().toLowerCase();
+      if(!v){ searchResults.innerHTML=''; return }
+      // naive search: fetch all and filter client-side (small demo). For production use indexed search.
+      const snap = await getDocs(collection(db,'users'));
+      searchResults.innerHTML = '';
+      snap.forEach(s=>{
+        const d = s.data();
+        if((d.email||'').toLowerCase().includes(v) || (d.displayName||'').toLowerCase().includes(v)){
+          const el = document.createElement('div'); el.className='user'; el.innerHTML = `<strong>${escapeHtml(d.displayName||'')}</strong><div class="small">${escapeHtml(d.email||'')}</div>`;
+          el.onclick = ()=>openChatWith(s.id,d);
+          searchResults.appendChild(el);
+        }
+      });
+    });
+
+    // ---------- Chat room ----------
+    let activeChatId = null;
+    let messagesUnsub = null;
+
+    async function openChatWith(otherUid, otherData){
+      // create deterministic chat id (sorted uids)
+      const myUid = uid();
+      if(!myUid) return alert('not logged in');
+      const chatId = [myUid,otherUid].sort().join('_');
+      chatIdSpan.textContent = chatId;
+      chatWithName.textContent = otherData.displayName || otherData.email;
+      chatWithEmail.textContent = otherData.email;
+      show(chatSection);
+
+      // create chat doc if not exists
+      const chatRef = doc(db,'chats',chatId);
+      const chatDoc = await getDoc(chatRef);
+      if(!chatDoc.exists()){
+        await setDoc(chatRef,{participants:[myUid,otherUid],createdAt:serverTimestamp()});
+      }
+
+      // listen to messages (collection: chats/{chatId}/messages)
+      if(messagesUnsub) messagesUnsub();
+      const messagesCol = collection(db,'chats',chatId,'messages');
+      const q = query(messagesCol, orderBy('createdAt'));
+      messagesDiv.innerHTML = 'Loading messages...';
+      messagesUnsub = onSnapshot(q, snap=>{
+        messagesDiv.innerHTML='';
+        snap.forEach(m=>{
+          const md = m.data();
+          const el = document.createElement('div'); el.className='message';
+          el.innerHTML = `<div class="small ${md.uid===myUid?'me':''}"><strong>${escapeHtml(md.displayName||'')}</strong> · <span class="small">${new Date(md.createdAt?.toDate?.()||Date.now()).toLocaleString()}</span></div><div>${escapeHtml(md.text)}</div>`;
+          messagesDiv.appendChild(el);
+        });
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      });
+
+      activeChatId = chatId;
+    }
+
+    sendBtn.addEventListener('click', async ()=>{
+      const txt = messageInput.value.trim(); if(!txt) return;
+      const my = auth.currentUser; if(!my) return;
+      const chatRef = doc(db,'chats',activeChatId);
+      const messagesCol = collection(db,'chats',activeChatId,'messages');
+      await addDoc(messagesCol,{text:txt,uid:my.uid,displayName:my.displayName||my.email,createdAt:serverTimestamp()});
+      messageInput.value='';
+    });
+
+    // ---------- Quick chat system ----------
+    // Rules: each user has quickTries and quickResetAt (timestamp in ms when next reset allowed). Default 10.
+
+    async function updateQuickUI(){
+      const myUid = uid(); if(!myUid) return;
+      const uDoc = await getDoc(doc(db,'users',myUid));
+      if(!uDoc.exists()) return;
+      const data = uDoc.data();
+      // reset logic: if quickResetAt in past -> refill
+      const now = Date.now();
+      if(!data.quickResetAt || now > (data.quickResetAt + 24*3600*1000)){
+        await updateDoc(doc(db,'users',myUid),{quickTries:10, quickResetAt: now});
+        data.quickTries = 10; data.quickResetAt = now;
+      }
+      qcTriesSpan.textContent = data.quickTries ?? 0;
+      triesLeftSpan.textContent = data.quickTries ?? 0;
+    }
+
+    // find random partner: push into queue collection with waiting:true.
+    findRandomBtn.addEventListener('click', async ()=>{
+      const myUid = uid(); if(!myUid) return alert('login required');
+      const uRef = doc(db,'users',myUid);
+      await runTransaction(db, async (t)=>{
+        const uSnap = await t.get(uRef);
+        if(!uSnap.exists()) throw 'user not found';
+        let {quickTries=10, quickResetAt=Date.now()} = uSnap.data();
+        const now = Date.now();
+        if(now > quickResetAt + 24*3600*1000){ quickTries = 10; quickResetAt = now; }
+        if(quickTries<=0) throw 'no-tries';
+        t.update(uRef,{quickTries: quickTries-1, quickResetAt});
+      }).then(()=>{
+        startQueue(); updateQuickUI();
+      }).catch(err=>{
+        if(err==='no-tries') return alert('no quick tries left — watch reward ad to get more');
+        alert('error: '+err);
+      });
+    });
+
+    // simplistic queue: attempt to find other waiting user in 'quickQueue' collection.
+    async function startQueue(){
+      const myUid = uid();
+      // try to find waiting user (one who is not me)
+      const q = query(collection(db,'quickQueue'), orderBy('createdAt'), limit(10));
+      const snap = await getDocs(q);
+      let peer = null;
+      snap.forEach(s=>{ const d = s.data(); if(d.uid !== myUid && !d.matched) peer = {id:s.id, ...d}; });
+
+      if(peer){
+        // create chat
+        const chatId = [myUid, peer.uid].sort().join('_');
+        const chatRef = doc(db,'chats',chatId);
+        const chatDoc = await getDoc(chatRef);
+        if(!chatDoc.exists()) await setDoc(chatRef,{participants:[myUid,peer.uid],createdAt:serverTimestamp()});
+        // mark queue item matched
+        await updateDoc(doc(db,'quickQueue',peer.id),{matched:true, matchedWith:myUid});
+        // open quick session UI
+        openQuickSession(chatId, peer.uid);
+      } else {
+        // add myself to queue
+        const addRef = await addDoc(collection(db,'quickQueue'),{uid:myUid,createdAt:serverTimestamp(),matched:false});
+        // wait up to 25s polling to see if matched
+        const start = Date.now();
+        let matched = false;
+        while(Date.now()-start < 25000 && !matched){
+          const snap = await getDoc(addRef);
+          const dd = snap.data();
+          if(dd.matched){ matched = true; break; }
+          await new Promise(r=>setTimeout(r,1200));
+        }
+        if(matched){
+          const docSnap = await getDoc(addRef); const d = docSnap.data();
+          const otherUid = d.matchedWith;
+          const chatId = [myUid, otherUid].sort().join('_');
+          openQuickSession(chatId, otherUid);
+        } else {
+          // no match found: remove my queue item
+          await setDoc(addRef,{uid:myUid,createdAt:serverTimestamp(),matched:false,expired:true});
+          alert('no match found, try again');
+        }
       }
     }
-  });
-});
 
-// 🔹 Send messages
-sendBtn.addEventListener("click", async () => {
-  const text = messageInput.value.trim();
-  if(!text) return;
-  messageInput.value = "";
-  saveLocal(text, true);
-  renderMessages();
-  try{
-    await addDoc(messagesRef, { text, from: userId, timestamp: serverTimestamp() });
-  }catch(e){ console.error("Send failed:", e); }
-});
+    // quick session: open ephemeral chat with 60s timer
+    let qcInterval=null; let qcCountdown=60; let qcUnsub=null;
+    async function openQuickSession(chatId, otherUid){
+      // show UI
+      quickSession.classList.remove('hidden');
+      // load peer info
+      const peerDoc = await getDoc(doc(db,'users',otherUid));
+      const peerData = peerDoc.exists()?peerDoc.data():{displayName:'Someone'};
+      quickPeerName.textContent = peerData.displayName || peerData.email || 'Anonymous';
 
-// 🔹 Send with Enter key
-messageInput.addEventListener("keydown", e => { if(e.key === "Enter") sendBtn.click(); });
-</script></body>
+      // subscribe to messages
+      if(qcUnsub) qcUnsub();
+      const messagesCol = collection(db,'chats',chatId,'messages');
+      const q = query(messagesCol, orderBy('createdAt'));
+      quickMessagesDiv.innerHTML='';
+      qcUnsub = onSnapshot(q, snap=>{
+        quickMessagesDiv.innerHTML='';
+        snap.forEach(m=>{
+          const md = m.data(); const el = document.createElement('div'); el.className='message'; el.innerHTML = `<div class="small ${md.uid===uid()?'me':''}"><strong>${escapeHtml(md.displayName||'')}</strong></div><div>${escapeHtml(md.text)}</div>`; quickMessagesDiv.appendChild(el);
+        }); quickMessagesDiv.scrollTop = quickMessagesDiv.scrollHeight;
+      });
+
+      // start 60s countdown
+      qcCountdown=60; quickTimer.textContent = formatTime(qcCountdown);
+      clearInterval(qcInterval);
+      qcInterval = setInterval(()=>{ qcCountdown--; quickTimer.textContent = formatTime(qcCountdown); if(qcCountdown<=0) endQuickSession(); },1000);
+
+      // send a welcome message
+      const me = auth.currentUser; if(me) await addDoc(messagesCol,{text:'joined quick chat',uid:me.uid,displayName:me.displayName,createdAt:serverTimestamp()});
+
+      // like button handler
+      qcLike.onclick = async ()=>{ await updateDoc(doc(db,'chats',chatId), {likes: arrayUnion(uid())}); alert('You liked — if both like the chat continues'); };
+      qcEnd.onclick = ()=>{ endQuickSession(); };
+
+      // watch for both likes -> keep chat (stop timer)
+      // naive poll: check likes field periodically
+      let keep=false; const keepCheck = setInterval(async ()=>{
+        const c = await getDoc(doc(db,'chats',chatId));
+        const likes = c.data()?.likes || [];
+        if(likes.includes(uid())){
+          // check if other liked too
+          const otherLoaded = likes.some(x=>x!==uid());
+          if(otherLoaded){ keep=true; clearInterval(keepCheck); clearInterval(qcInterval); quickTimer.textContent = 'CONTINUED'; }
+        }
+      },2000);
+
+      // end function
+      async function endQuickSession(){ clearInterval(qcInterval); clearInterval(keepCheck); quickSession.classList.add('hidden'); if(qcUnsub) qcUnsub(); qcUnsub=null; alert(keep? 'Chat continued by mutual likes':'Quick chat ended'); }
+    }
+
+    // ad grant: shows a 30s timer — simulate reward ad
+    adGrantBtn.addEventListener('click', async ()=>{
+      // disable button while ad plays
+      adGrantBtn.disabled=true; adTimer.textContent='Watching ad... 30';
+      let t=30; const id = setInterval(()=>{ t--; adTimer.textContent = `Watching ad... ${t}`; if(t<=0){ clearInterval(id); adTimer.textContent='Reward granted!'; grantAdReward(); adGrantBtn.disabled=false; setTimeout(()=>adTimer.textContent='','2000'); } },1000);
+    });
+
+    async function grantAdReward(){
+      const myUid = uid(); if(!myUid) return;
+      await updateDoc(doc(db,'users',myUid), {quickTries: 10});
+      updateQuickUI();
+      alert('You received 10 quick tries');
+    }
+
+    // ---------- Auth state listener ----------
+    onAuthStateChanged(auth, async (user)=>{
+      if(user){
+        userEmailSpan.textContent = user.email;
+        show(homeSection);
+        updateQuickUI();
+        loadUsers();
+      } else {
+        userEmailSpan.textContent = '';
+        show(authSection);
+      }
+    });
+
+    // ---------- Utilities ----------
+    function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>"']/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;" })[c]); }
+    function formatTime(s){ const mm = String(Math.floor(s/60)).padStart(2,'0'); const ss = String(s%60).padStart(2,'0'); return `${mm}:${ss}`; }
+
+  </script>
+</body>
 </html>
