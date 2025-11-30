@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quick Chat</title>
+<style>
+  body { margin:0; padding:0; font-family: Arial,sans-serif; background:#BCC0E8; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh;}
+  #chatBox { background:white; width:90%; max-width:400px; border-radius:15px; padding:20px; display:flex; flex-direction:column; align-items:center;}
+  #messages { width:100%; min-height:150px; border:1px solid #ccc; border-radius:10px; padding:10px; overflow-y:auto; margin-bottom:10px;}
+  button { margin:5px; padding:10px 20px; border:none; border-radius:10px; cursor:pointer;}
+  #likeBtn { background:#3b49df; color:white;}
+  #countdown { margin-top:10px; font-size:18px; font-weight:bold;}
+  #triesInfo { margin-bottom:10px; color:red; font-size:14px;}
+  #extraOptions { margin-top:10px; display:none; flex-direction:column; align-items:center; }
+</style>
+</head>
+<body>
+
+<div id="chatBox">
+  <div id="triesInfo"></div>
+  <div id="messages">Waiting for match...</div>
+  <button id="likeBtn" disabled>Like</button>
+  <div id="countdown"></div>
+  <div id="extraOptions">
+    <button id="waitBtn">Wait 24h to regain tries</button>
+    <button id="adBtn">Watch Ad to gain 5 tries</button>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs, arrayUnion, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
+  authDomain: "chat-34ff3.firebaseapp.com",
+  projectId: "chat-34ff3",
+  storageBucket: "chat-34ff3.appspot.com",
+  messagingSenderId: "391966829170",
+  appId: "1:391966829170:web:2b9fa454e8be176b7930eb",
+  measurementId: "G-81MNVPKD3W"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth();
+
+const messagesDiv = document.getElementById("messages");
+const likeBtn = document.getElementById("likeBtn");
+const countdownEl = document.getElementById("countdown");
+const triesInfo = document.getElementById("triesInfo");
+const extraOptions = document.getElementById("extraOptions");
+const waitBtn = document.getElementById("waitBtn");
+const adBtn = document.getElementById("adBtn");
+
+let currentUser, chatDocId;
+let tries = 10; // default
+let countdown = 60;
+
+// Track tries per user in Firestore
+async function loadTries(uid) {
+  const docRef = doc(db, "quickchat_tries", uid);
+  const docSnap = await getDoc(docRef);
+  if (docSnap.exists()) {
+    const data = docSnap.data();
+    const now = Date.now();
+    if (data.resetTime && now > data.resetTime.toMillis()) {
+      tries = 10;
+      await updateDoc(docRef, { tries: 10, resetTime: serverTimestamp() });
+    } else {
+      tries = data.tries ?? 10;
+    }
+  } else {
+    await setDoc(doc(db, "quickchat_tries", uid), { tries: 10, resetTime: serverTimestamp() });
+    tries = 10;
+  }
+  triesInfo.innerText = `Tries left: ${tries}`;
+}
+
+// Random match logic
+async function findMatch() {
+  if (tries <= 0) {
+    extraOptions.style.display = "flex";
+    return;
+  }
+
+  tries--;
+  triesInfo.innerText = `Tries left: ${tries}`;
+  await updateDoc(doc(db, "quickchat_tries", currentUser.uid), { tries });
+
+  messagesDiv.innerText = "Searching for a match...";
+  likeBtn.disabled = true;
+
+  const q = query(collection(db, "quickchat_queue"), where("uid", "!=", currentUser.uid));
+  const snap = await getDocs(q);
+
+  if (snap.empty) {
+    messagesDiv.innerText = "No users online. Try again later.";
+    return;
+  }
+
+  const randomUserDoc = snap.docs[Math.floor(Math.random() * snap.docs.length)];
+  const otherUser = randomUserDoc.data();
+
+  // Create a chat doc
+  const chatRef = await addDoc(collection(db, "quickchats"), {
+    users: [currentUser.uid, otherUser.uid],
+    likes: [],
+    timestamp: serverTimestamp()
+  });
+  chatDocId = chatRef.id;
+
+  messagesDiv.innerText = `Connected with a random user!`;
+  likeBtn.disabled = false;
+
+  // Remove other user from queue
+  await deleteDoc(doc(db, "quickchat_queue", otherUser.uid));
+
+  startCountdown();
+}
+
+// Countdown
+function startCountdown() {
+  countdown = 60;
+  countdownEl.innerText = `Time left: ${countdown}s`;
+  const interval = setInterval(() => {
+    countdown--;
+    countdownEl.innerText = `Time left: ${countdown}s`;
+    if (countdown <= 0) {
+      clearInterval(interval);
+      messagesDiv.innerText = "Time's up! You need to queue again.";
+      likeBtn.disabled = true;
+    }
+  }, 1000);
+}
+
+// Like button
+likeBtn.onclick = async () => {
+  const chatRef = doc(db, "quickchats", chatDocId);
+  await updateDoc(chatRef, { likes: arrayUnion(currentUser.uid) });
+
+  const chatSnap = await getDoc(chatRef);
+  const data = chatSnap.data();
+
+  if (data.likes.length === 2) {
+    await addDoc(collection(db, "matches"), {
+      users: data.users,
+      timestamp: serverTimestamp()
+    });
+    messagesDiv.innerText = "It's a match!";
+    likeBtn.disabled = true;
+  } else {
+    messagesDiv.innerText = "Like sent! Waiting for the other user.";
+    likeBtn.disabled = true;
+  }
+};
+
+// Extra options buttons
+waitBtn.onclick = async () => {
+  await updateDoc(doc(db, "quickchat_tries", currentUser.uid), { tries: 10, resetTime: serverTimestamp() + 24*60*60*1000 });
+  tries = 10;
+  triesInfo.innerText = `Tries left: ${tries}`;
+  extraOptions.style.display = "none";
+};
+
+adBtn.onclick = async () => {
+  tries += 5;
+  await updateDoc(doc(db, "quickchat_tries", currentUser.uid), { tries });
+  triesInfo.innerText = `Tries left: ${tries}`;
+  extraOptions.style.display = "none";
+};
+
+// Auth state
+onAuthStateChanged(auth, user => {
+  if (!user) window.location.href = "/login.html";
+  currentUser = user;
+  // Add current user to queue
+  setDoc(doc(db, "quickchat_queue", user.uid), { uid: user.uid, timestamp: serverTimestamp() });
+  loadTries(user.uid);
+  findMatch();
+});
+
+</script>
+</body>
+</html>
