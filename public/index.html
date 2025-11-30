@@ -4,51 +4,67 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Firebase Auth With Profile</title>
+
 <style>
-  
-    body{
-  background: #BCC0E8;
-  height: 50rem;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-.card{
-  background: white;
-  height: 400px;
-  width: 350px;
-  border-radius: 20px;
-  display: flex;
-  flex-direction: column; /* FIX */
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
-}
-#loginBox, #signupBox{
-  width: 100%;
-}
-input, select{
-  background: hsla(235, 0%, 90%, 1);
-  border: none;
-  height: 30px;
-  width: 90%;
-  border-radius: 20px;
-  margin: 10px 0;
-  padding: 5px 10px;
-}
-button{
-  width: 90%;
-  height: 35px;
-  margin-top: 10px;
-  border-radius: 20px;
-  border: none;
-  background: #3b49df;
-  color: white;
-}
-.switch{
-  cursor: pointer;
-  color: #3b49df;
-  text-align:center;
+  body{
+    background: #BCC0E8;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+    font-family: Arial, sans-serif;
+  }
+  .card{
+    background: white;
+    width: 350px;
+    padding: 25px;
+    border-radius: 20px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  h2{
+    margin-bottom: 10px;
+  }
+  input, select{
+    background: hsla(235, 0%, 90%, 1);
+    border: none;
+    height: 40px;
+    width: 90%;
+    border-radius: 20px;
+    margin: 10px 0;
+    padding: 10px;
+    outline: none;
+    font-size: 14px;
+  }
+  button{
+    width: 90%;
+    height: 40px;
+    background: #3b49df;
+    color: white;
+    border-radius: 20px;
+    border: none;
+    margin-top: 10px;
+    cursor: pointer;
+    font-size: 15px;
+  }
+  button:hover{
+    background: #2e3ac7;
+  }
+  .switch{
+    cursor: pointer;
+    color: #3b49df;
+    text-align: center;
+    font-size: 14px;
+    margin-top: 10px;
+  }
+  #msg, #msg2{
+    text-align: center;
+    color: red;
+    margin-top: 5px;
+    font-size: 14px;
   }
 </style>
 
@@ -59,7 +75,7 @@ button{
 
   <!-- LOGIN -->
   <div id="loginBox">
-    <h2 style="text-align:center;">Login</h2>
+    <h2>Login</h2>
 
     <input id="loginEmail" type="email" placeholder="Email">
     <input id="loginPass" type="password" placeholder="Password">
@@ -72,7 +88,7 @@ button{
 
   <!-- SIGNUP -->
   <div id="signupBox" style="display:none;">
-    <h2 style="text-align:center;">Sign Up</h2>
+    <h2>Sign Up</h2>
 
     <input id="signupEmail" type="email" placeholder="Email">
     <input id="signupPass" type="password" placeholder="Password">
@@ -88,81 +104,111 @@ button{
     <button id="signupBtn">Create Account</button>
 
     <p class="switch" onclick="showLogin()">Already have an account?</p>
-    <p id="msg2" style="color:red;text-align:center;"></p>
+    <p id="msg2"></p>
   </div>
 
 </div>
 
 
 <script type="module">
-  import { initializeApp } from "/firebase/app";
-import { getAnalytics } from "/firebase/analytics";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "/firebase/auth";
-import { getFirestore, doc, setDoc, serverTimestamp } from "/firebase/firestore";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
-  authDomain: "chat-34ff3.firebaseapp.com",
-  projectId: "chat-34ff3",
-  storageBucket: "chat-34ff3.firebasestorage.app",
-  messagingSenderId: "391966829170",
-  appId: "1:391966829170:web:2b9fa454e8be176b7930eb",
-  measurementId: "G-81MNVPKD3W"
-};
+  /* ✅ Correct Firebase CDN Imports */
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-analytics.js";
+  import { 
+    getAuth,
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-const auth = getAuth(app);
-const db = getFirestore(app);
+  import {
+    getFirestore,
+    doc,
+    setDoc,
+    serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
-window.showSignup = () => {
-  document.getElementById("loginBox").style.display = "none";
-  document.getElementById("signupBox").style.display = "block";
-};
 
-window.showLogin = () => {
-  document.getElementById("signupBox").style.display = "none";
-  document.getElementById("loginBox").style.display = "block";
-};
+  /* 🔥 Your Firebase Config */
+  const firebaseConfig = {
+    apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
+    authDomain: "chat-34ff3.firebaseapp.com",
+    projectId: "chat-34ff3",
+    storageBucket: "chat-34ff3.firebasestorage.app",
+    messagingSenderId: "391966829170",
+    appId: "1:391966829170:web:2b9fa454e8be176b7930eb",
+    measurementId: "G-81MNVPKD3W"
+  };
 
-document.getElementById("loginBtn").onclick = () => {
-  const email = document.getElementById("loginEmail").value;
-  const pass = document.getElementById("loginPass").value;
-  signInWithEmailAndPassword(auth, email, pass)
-    .then(() => {
-      window.location.href = "/home.html"; // redirect
-    })
-    .catch(e => document.getElementById("msg").innerText = e.message);
-};
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
 
-document.getElementById("signupBtn").onclick = async () => {
-  const email = document.getElementById("signupEmail").value;
-  const pass = document.getElementById("signupPass").value;
-  const username = document.getElementById("signupUsername").value;
-  const gender = document.getElementById("signupGender").value;
-  const msg2 = document.getElementById("msg2");
-  if (!email || !pass || !username || !gender) {
-    msg2.innerText = "Please fill out all fields";
-    return;
-  }
-  try {
-    const userCred = await createUserWithEmailAndPassword(auth, email, pass);
-    const uid = userCred.user.uid;
-    // SAVE USER TO FIRESTORE
-    await setDoc(doc(db, "users", uid), {
-      email: email,
-      username: username,
-      gender: gender,
-      createdAt: serverTimestamp()
-    });
-    msg2.style.color = "green";
-    msg2.innerText = "Account created!";
-    setTimeout(() => window.location.href = "/home.html", 800);
-  } catch (e) {
-    msg2.innerText = e.message;
-  }
-};
+
+  /* 🔄 SWITCH BETWEEN LOGIN & SIGNUP */
+  window.showSignup = () => {
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("signupBox").style.display = "block";
+  };
+
+  window.showLogin = () => {
+    document.getElementById("signupBox").style.display = "none";
+    document.getElementById("loginBox").style.display = "block";
+  };
+
+
+  /* 🔐 LOGIN */
+  document.getElementById("loginBtn").onclick = () => {
+    const email = document.getElementById("loginEmail").value;
+    const pass = document.getElementById("loginPass").value;
+
+    signInWithEmailAndPassword(auth, email, pass)
+      .then(() => {
+        window.location.href = "/home.html"; // redirect
+      })
+      .catch(err => document.getElementById("msg").innerText = err.message);
+  };
+
+
+  /* 📝 SIGNUP */
+  document.getElementById("signupBtn").onclick = async () => {
+
+    const email = document.getElementById("signupEmail").value;
+    const pass = document.getElementById("signupPass").value;
+    const username = document.getElementById("signupUsername").value;
+    const gender = document.getElementById("signupGender").value;
+    const msg2 = document.getElementById("msg2");
+
+    if (!email || !pass || !username || !gender) {
+      msg2.innerText = "Please fill out all fields";
+      return;
+    }
+
+    try {
+      const userCred = await createUserWithEmailAndPassword(auth, email, pass);
+      const uid = userCred.user.uid;
+
+      await setDoc(doc(db, "users", uid), {
+        email: email,
+        username: username,
+        gender: gender,
+        createdAt: serverTimestamp()
+      });
+
+      msg2.style.color = "green";
+      msg2.innerText = "Account created!";
+
+      setTimeout(() => {
+        window.location.href = "/home.html";
+      }, 800);
+
+    } catch (err) {
+      msg2.innerText = err.message;
+    }
+  };
+
 </script>
 
 </body>
-</html>
+  </html>
