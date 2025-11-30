@@ -3,13 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ZYNK - Profile</title>
+<title>ZYNK - Home</title>
 <style>
   body {
     margin: 0;
     padding: 0;
     font-family: Arial, sans-serif;
-    background: #BCC0E8;
   }
   .Header {
     width: 100%;
@@ -21,49 +20,67 @@
     align-items: center;
   }
   .body {
-    width: 90%;
-    max-width: 500px;
-    margin: 20px auto;
-    background: white;
-    border-radius: 20px;
+    width: 100%;
+    min-height: 50rem;
+    background: #BCC0E8;
+    border-radius: 20px 20px 0px 0px;
     padding: 20px;
+    box-sizing: border-box;
+  }
+  button {
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+  .user-card {
+    width: 90%;
+    background: white;
+    border-radius: 15px;
+    padding: 15px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    justify-content: space-between;
+    transition: 0.2s;
+  }
+  .user-card:hover {
+    background: #e9e9ff;
   }
   .avatar {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
+    width: 50px;
+    height: 50px;
     background: #dcdcff;
-    margin-bottom: 15px;
+    border-radius: 50%;
   }
-  h2 {
-    margin: 5px 0;
+  .user-text {
+    font-size: 18px;
   }
-  .followers-list {
-    margin-top: 15px;
+  .follow-btn {
+    padding: 5px 10px;
+    background: #3b49df;
+    color: white;
+    border-radius: 10px;
+    font-size: 14px;
   }
-  .followers-list div {
-    padding: 5px;
-    border-bottom: 1px solid #eee;
+  .follow-btn:hover {
+    background: #2e3ac7;
   }
 </style>
 </head>
 <body>
 
 <div class="Header">
-  <h1>Profile</h1>
+  <h1>ZYNK</h1>
 </div>
 
-<div class="body" id="profileContainer">
-  <div class="avatar"></div>
-  <h2 id="username">Username</h2>
-  <p id="gender">Gender</p>
-  <p>Followers: <span id="followersCount">0</span></p>
-  <div class="followers-list" id="followersList"></div>
+<div class="body" id="userContainer">
+  <!-- USERS WILL LOAD HERE -->
 </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-  import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  import { getFirestore, collection, getDocs, doc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
   const firebaseConfig = {
@@ -79,56 +96,81 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const auth = getAuth(app);
+  const container = document.getElementById("userContainer");
 
-  const usernameEl = document.getElementById("username");
-  const genderEl = document.getElementById("gender");
-  const followersCountEl = document.getElementById("followersCount");
-  const followersListEl = document.getElementById("followersList");
-
-  // Get userId from URL
-  const urlParams = new URLSearchParams(window.location.search);
-  const userId = urlParams.get("id");
-
-  if (!userId) {
-    alert("No user ID provided");
-    window.location.href = "/homepage.html";
-  }
-
-  onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      window.location.href = "/login.html";
-      return;
-    }
-
+  async function loadUsers(currentUid) {
+    container.innerHTML = "<p style='color:white'>Loading users...</p>";
     try {
-      // Load user profile
-      const userDoc = await getDoc(doc(db, "users", userId));
-      if (!userDoc.exists()) {
-        alert("User not found");
-        window.location.href = "/homepage.html";
-        return;
-      }
+      const snap = await getDocs(collection(db, "users"));
+      container.innerHTML = "";
 
-      const userData = userDoc.data();
-      usernameEl.innerText = userData.username || "Unknown";
-      genderEl.innerText = userData.gender || "Unknown";
-      followersCountEl.innerText = userData.followers || 0;
+      snap.forEach(docSnap => {
+        const user = docSnap.data();
+        const uid = docSnap.id;
 
-      // Optional: show followers list if you store who followed
-      if (userData.followedBy && Array.isArray(userData.followedBy)) {
-        followersListEl.innerHTML = "<h4>Followers:</h4>";
-        userData.followedBy.forEach(follower => {
-          const div = document.createElement("div");
-          div.innerText = follower;
-          followersListEl.appendChild(div);
-        });
-      }
+        // Skip current user
+        if (uid === currentUid) return;
+
+        const el = document.createElement("div");
+        el.classList.add("user-card");
+
+        el.innerHTML = `
+          <div style="display:flex; align-items:center; gap:15px;">
+            <div class="avatar"></div>
+            <div class="user-text">
+              <b>${user.username || "Unknown User"}</b><br>
+              <small>${user.gender || "Unknown"}</small>
+            </div>
+          </div>
+          <button class="follow-btn">Follow</button>
+        `;
+
+        // Follow button
+        const followBtn = el.querySelector(".follow-btn");
+        followBtn.onclick = async (e) => {
+          e.stopPropagation(); // prevent card click
+          try {
+            const userRef = doc(db, "users", uid);
+            const currentUserRef = doc(db, "users", currentUid);
+
+            // Add current user to the other user's followers
+            await updateDoc(userRef, {
+              followers: arrayUnion(currentUid)
+            });
+
+            // Add the other user to current user's following
+            await updateDoc(currentUserRef, {
+              following: arrayUnion(uid)
+            });
+
+            followBtn.innerText = "Following";
+            followBtn.disabled = true;
+
+          } catch(err) {
+            alert("Failed to follow: " + err.message);
+          }
+        };
+
+        // Clicking card goes to chat
+        el.onclick = () => {
+          window.location.href = "chat.html?id=" + uid;
+        };
+
+        container.appendChild(el);
+      });
 
     } catch(err) {
-      alert("Error loading profile: " + err.message);
+      container.innerHTML = "<p style='color:red'>Failed to load users: " + err.message + "</p>";
+    }
+  }
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      loadUsers(user.uid);
+    } else {
+      window.location.href = "/login.html";
     }
   });
 </script>
-
 </body>
 </html>
