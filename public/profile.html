@@ -3,99 +3,132 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>All Users</title>
+<title>ZYNK - Profile</title>
 <style>
-*{box-sizing:border-box;}
-body{margin:0;font-family:Inter,sans-serif;background:#f4f6ff;color:#1b1b1b;transition:0.3s;}
-body.dark{background:#0f1117;color:#fff;}
-.container{padding:20px;}
-.user{padding:12px 16px;margin-bottom:10px;border-radius:8px;background:#fff;cursor:pointer;transition:0.2s;box-shadow:0 3px 10px rgba(0,0,0,0.05);}
-.user:hover{background:#e1e6ff;}
-.theme-toggle{position:fixed;top:14px;right:14px;background:transparent;border:none;font-size:22px;cursor:pointer;}
-.message{padding:12px 16px;margin-top:20px;background:#fff;border-radius:8px;text-align:center;box-shadow:0 3px 10px rgba(0,0,0,0.05);}
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    background: #BCC0E8;
+  }
+  .Header {
+    width: 100%;
+    height: 5rem;
+    background-color: #BCC0E8;
+    border-radius: 0px 0px 20px 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .body {
+    width: 90%;
+    max-width: 500px;
+    margin: 20px auto;
+    background: white;
+    border-radius: 20px;
+    padding: 20px;
+  }
+  .avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #dcdcff;
+    margin-bottom: 15px;
+  }
+  h2 {
+    margin: 5px 0;
+  }
+  .followers-list {
+    margin-top: 15px;
+  }
+  .followers-list div {
+    padding: 5px;
+    border-bottom: 1px solid #eee;
+  }
 </style>
 </head>
 <body>
-<button class="theme-toggle" id="themeToggle">🌙</button>
-<h2 style="text-align:center;margin-top:40px;">All Users</h2>
-<div class="container" id="usersList"></div>
+
+<div class="Header">
+  <h1>Profile</h1>
+</div>
+
+<div class="body" id="profileContainer">
+  <div class="avatar"></div>
+  <h2 id="username">Username</h2>
+  <p id="gender">Gender</p>
+  <p>Followers: <span id="followersCount">0</span></p>
+  <div class="followers-list" id="followersList"></div>
+</div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-analytics.js";
-import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
-// Firebase Config
-const firebaseConfig = {
-  apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
-  authDomain: "chat-34ff3.firebaseapp.com",
-  projectId: "chat-34ff3",
-  storageBucket: "chat-34ff3.appspot.com",
-  messagingSenderId: "391966829170",
-  appId: "1:391966829170:web:2b9fa454e8be176b7930eb",
-  measurementId: "G-81MNVPKD3W"
-};
+  const firebaseConfig = {
+    apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
+    authDomain: "chat-34ff3.firebaseapp.com",
+    projectId: "chat-34ff3",
+    storageBucket: "chat-34ff3.firebasestorage.app",
+    messagingSenderId: "391966829170",
+    appId: "1:391966829170:web:2b9fa454e8be176b7930eb",
+    measurementId: "G-81MNVPKD3W"
+  };
 
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-const db = getFirestore(app);
-const auth = getAuth(app);
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
 
-// Theme Toggle
-const themeToggle = document.getElementById("themeToggle");
-themeToggle.addEventListener("click", () => {
-  document.body.classList.toggle("dark");
-  themeToggle.textContent = document.body.classList.contains("dark") ? "☀" : "🌙";
-});
+  const usernameEl = document.getElementById("username");
+  const genderEl = document.getElementById("gender");
+  const followersCountEl = document.getElementById("followersCount");
+  const followersListEl = document.getElementById("followersList");
 
-// Users Display
-const usersList = document.getElementById("usersList");
-let currentUser = null;
+  // Get userId from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const userId = urlParams.get("id");
 
-function showMessage(msg) {
-  usersList.innerHTML = `<div class="message">${msg}</div>`;
-}
-
-onAuthStateChanged(auth, user => {
-  if(user) {
-    currentUser = user;
-    loadUsers();
-  } else {
-    // Not logged in → redirect to login
-    window.location.href = "login.html";
+  if (!userId) {
+    alert("No user ID provided");
+    window.location.href = "/homepage.html";
   }
-});
 
-function loadUsers() {
-  onSnapshot(collection(db, "users"), snapshot => {
-    if(snapshot.empty) {
-      showMessage("No users found.");
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      window.location.href = "/login.html";
       return;
     }
 
-    usersList.innerHTML = "";
-    let displayed = 0;
+    try {
+      // Load user profile
+      const userDoc = await getDoc(doc(db, "users", userId));
+      if (!userDoc.exists()) {
+        alert("User not found");
+        window.location.href = "/homepage.html";
+        return;
+      }
 
-    snapshot.docs.forEach(doc => {
-      if(currentUser && doc.id === currentUser.uid) return; // skip self
-      const fullName = doc.data().fullName || "(No name)";
-      const email = doc.data().email || "(No email)";
-      const div = document.createElement("div");
-      div.className = "user";
-      div.textContent = fullName + " (" + email + ")";
-      usersList.appendChild(div);
-      displayed++;
-    });
+      const userData = userDoc.data();
+      usernameEl.innerText = userData.username || "Unknown";
+      genderEl.innerText = userData.gender || "Unknown";
+      followersCountEl.innerText = userData.followers || 0;
 
-    if(displayed === 0) {
-      showMessage("No other users found.");
+      // Optional: show followers list if you store who followed
+      if (userData.followedBy && Array.isArray(userData.followedBy)) {
+        followersListEl.innerHTML = "<h4>Followers:</h4>";
+        userData.followedBy.forEach(follower => {
+          const div = document.createElement("div");
+          div.innerText = follower;
+          followersListEl.appendChild(div);
+        });
+      }
+
+    } catch(err) {
+      alert("Error loading profile: " + err.message);
     }
-  }, err => {
-    console.error("Error loading users:", err);
-    showMessage("Error loading users. Check console for details.");
   });
-}
 </script>
+
 </body>
 </html>
