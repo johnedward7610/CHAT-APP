@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+8<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -165,7 +165,7 @@
 
     signInWithEmailAndPassword(auth, email, pass)
       .then(() => {
-        window.location.href = "/home.html"; // redirect
+        window.location.href = "/homepage.html"; // redirect
       })
       .catch(err => document.getElementById("msg").innerText = err.message);
   };
@@ -200,7 +200,7 @@
       msg2.innerText = "Account created!";
 
       setTimeout(() => {
-        window.location.href = "/home.html";
+        window.location.href = "/homepage.html";
       }, 800);
 
     } catch (err) {
