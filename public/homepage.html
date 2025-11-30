@@ -2,7 +2,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ZYNK - Home</title><style>
+<title>ZYNK - Home</title>
+<style>
   body {
     margin: 0;
     padding: 0;
@@ -40,6 +41,7 @@
     gap: 15px;
     cursor: pointer;
     transition: 0.2s;
+    justify-content: space-between;
   }
   .user-card:hover {
     background: #e9e9ff;
@@ -53,95 +55,117 @@
   .user-text {
     font-size: 18px;
   }
-</style></head><body><div class="Header">
+  .follow-btn {
+    background-color: #3b49df;
+    color: white;
+    border-radius: 12px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    border: none;
+  }
+  .follow-btn:hover {
+    background-color: #2e3ac7;
+  }
+</style>
+</head>
+<body>
+<div class="Header">
   <h1>ZYNK</h1>
-</div><div>
-  <button>
-    <!-- SVG icon -->
-  </button>
-  <button>
-    <!-- SVG icon -->
-  </button>
-</div><div class="body" id="userContainer">
-  <!-- USERS WILL LOAD HERE -->
 </div>
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-  import { getFirestore, collection, getDocs, doc, updateDoc, increment }
-  from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-  import { getAuth, onAuthStateChanged }
-  from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-  
-  const firebaseConfig = {
-    apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
-    authDomain: "chat-34ff3.firebaseapp.com",
-    projectId: "chat-34ff3",
-    storageBucket: "chat-34ff3.firebasestorage.app",
-    messagingSenderId: "391966829170",
-    appId: "1:391966829170:web:2b9fa454e8be176b7930eb",
-    measurementId: "G-81MNVPKD3W"
-  };
-  
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const auth = getAuth(app);
-  const container = document.getElementById("userContainer");
-  
-  async function loadUsers() {
-    container.innerHTML = "<p style='color:white'>Loading users...</p>";
-    try {
-      const snap = await getDocs(collection(db, "users"));
-      container.innerHTML = "";
-      snap.forEach(docSnap => {
-        const user = docSnap.data();
-        const el = document.createElement("div");
-        el.classList.add("user-card");
-        
-        el.innerHTML = `
+<div>
+  <button>
+    <!-- SVG icon -->
+  </button>
+  <button>
+    <!-- SVG icon -->
+  </button>
+</div>
+<div class="body" id="userContainer">
+  <!-- USERS WILL LOAD HERE -->
+</div><script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
+  authDomain: "chat-34ff3.firebaseapp.com",
+  projectId: "chat-34ff3",
+  storageBucket: "chat-34ff3.firebasestorage.app",
+  messagingSenderId: "391966829170",
+  appId: "1:391966829170:web:2b9fa454e8be176b7930eb",
+  measurementId: "G-81MNVPKD3W"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+const container = document.getElementById("userContainer");
+
+async function loadUsers() {
+  container.innerHTML = "<p style='color:white'>Loading users...</p>";
+  try {
+    const snap = await getDocs(collection(db, "users"));
+    container.innerHTML = "";
+    const currentUid = auth.currentUser.uid;
+
+    snap.forEach(docSnap => {
+      const user = docSnap.data();
+      const userId = docSnap.id;
+
+      if (userId === currentUid) return; // don't show yourself
+
+      const el = document.createElement("div");
+      el.classList.add("user-card");
+      el.innerHTML = `
+        <div style="display:flex;align-items:center;gap:15px">
           <div class="avatar"></div>
           <div class="user-text">
             <b>${user.username || "Unknown User"}</b><br>
-            <small>${user.gender || "Unknown"}</small><br>
-            <small>Followers: <span id="followers-${docSnap.id}">${user.followers || 0}</span></small>
+            <small>${user.gender || "Unknown"}</small>
           </div>
-          <button id="follow-${docSnap.id}">Follow</button>
-        `;
-        
-        // Clicking the card opens chat
-        el.querySelector(".user-text").onclick = () => {
-          window.location.href = "profile.html?id=" + docSnap.id;
-        };
-        
-        // Follow button
-        const followBtn = el.querySelector(`#follow-${docSnap.id}`);
-        followBtn.onclick = async (e) => {
-          e.stopPropagation(); // prevent opening chat
-          try {
-            const userRef = doc(db, "users", docSnap.id);
-            await updateDoc(userRef, {
-              followers: increment(1)
-            });
-            const span = document.getElementById(`followers-${docSnap.id}`);
-            span.innerText = parseInt(span.innerText) + 1;
-          } catch (err) {
-            alert("Failed to follow: " + err.message);
-          }
-        };
-        
-        container.appendChild(el);
-      });
-    } catch (err) {
-      container.innerHTML = "<p style='color:red'>Failed to load users: " + err.message + "</p>";
-    }
+        </div>
+        <button class="follow-btn">Follow</button>
+      `;
+
+      const followBtn = el.querySelector(".follow-btn");
+      followBtn.onclick = async (e) => {
+        e.stopPropagation(); // prevent triggering chat redirect
+        try {
+          // Add current user to the other user's followers
+          await updateDoc(doc(db, "users", userId), {
+            followers: arrayUnion(currentUid)
+          });
+          // Optionally, add the followed user to your following array
+          await updateDoc(doc(db, "users", currentUid), {
+            following: arrayUnion(userId)
+          });
+          followBtn.innerText = "Following";
+          followBtn.disabled = true;
+        } catch(err) {
+          alert("Error following user: " + err.message);
+        }
+      };
+
+      // Clicking on card redirects to chat
+      el.onclick = () => {
+        window.location.href = "chat.html?id=" + userId;
+      };
+
+      container.appendChild(el);
+    });
+  } catch(err) {
+    container.innerHTML = "<p style='color:red'>Failed to load users: " + err.message + "</p>";
   }
-  
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      loadUsers();
-    } else {
-      window.location.href = "/login.html";
-    }
-  });
-</script>
-</body>
+}
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    loadUsers();
+  } else {
+    window.location.href = "/login.html";
+  }
+});
+</script></body>
 </html>
