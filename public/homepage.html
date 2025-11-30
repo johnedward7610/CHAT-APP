@@ -83,89 +83,90 @@
 </div>
 <div class="body" id="userContainer">
   <!-- USERS WILL LOAD HERE -->
-</div><script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-import { getFirestore, collection, getDocs, doc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+</div>
+  <script type="module">
+  // Firebase imports
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getFirestore, collection, getDocs, doc, updateDoc, arrayUnion } 
+    from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged } 
+    from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
-  authDomain: "chat-34ff3.firebaseapp.com",
-  projectId: "chat-34ff3",
-  storageBucket: "chat-34ff3.firebasestorage.app",
-  messagingSenderId: "391966829170",
-  appId: "1:391966829170:web:2b9fa454e8be176b7930eb",
-  measurementId: "G-81MNVPKD3W"
-};
+  const firebaseConfig = {
+    apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
+    authDomain: "chat-34ff3.firebaseapp.com",
+    projectId: "chat-34ff3",
+    storageBucket: "chat-34ff3.firebasestorage.app",
+    messagingSenderId: "391966829170",
+    appId: "1:391966829170:web:2b9fa454e8be176b7930eb",
+    measurementId: "G-81MNVPKD3W"
+  };
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
-const container = document.getElementById("userContainer");
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+  const container = document.getElementById("userContainer");
 
-async function loadUsers() {
-  container.innerHTML = "<p style='color:white'>Loading users...</p>";
-  try {
-    const snap = await getDocs(collection(db, "users"));
-    container.innerHTML = "";
-    const currentUid = auth.currentUser.uid;
+  async function loadUsers() {
+    container.innerHTML = "<p style='color:white'>Loading users...</p>";
+    try {
+      const snap = await getDocs(collection(db, "users"));
+      container.innerHTML = "";
+      snap.forEach(docSnap => {
+        const user = docSnap.data();
+        const uid = docSnap.id;
 
-    snap.forEach(docSnap => {
-      const user = docSnap.data();
-      const userId = docSnap.id;
+        const el = document.createElement("div");
+        el.classList.add("user-card");
 
-      if (userId === currentUid) return; // don't show yourself
-
-      const el = document.createElement("div");
-      el.classList.add("user-card");
-      el.innerHTML = `
-        <div style="display:flex;align-items:center;gap:15px">
+        el.innerHTML = `
           <div class="avatar"></div>
           <div class="user-text">
             <b>${user.username || "Unknown User"}</b><br>
             <small>${user.gender || "Unknown"}</small>
           </div>
-        </div>
-        <button class="follow-btn">Follow</button>
-      `;
+          <button class="followBtn">Follow</button>
+        `;
 
-      const followBtn = el.querySelector(".follow-btn");
-      followBtn.onclick = async (e) => {
-        e.stopPropagation(); // prevent triggering chat redirect
-        try {
-          // Add current user to the other user's followers
-          await updateDoc(doc(db, "users", userId), {
-            followers: arrayUnion(currentUid)
-          });
-          // Optionally, add the followed user to your following array
-          await updateDoc(doc(db, "users", currentUid), {
-            following: arrayUnion(userId)
-          });
-          followBtn.innerText = "Following";
-          followBtn.disabled = true;
-        } catch(err) {
-          alert("Error following user: " + err.message);
-        }
-      };
+        const followBtn = el.querySelector(".followBtn");
 
-      // Clicking on card redirects to chat
-      el.onclick = () => {
-        window.location.href = "chat.html?id=" + userId;
-      };
+        // Follow button click
+        followBtn.onclick = async (e) => {
+          e.stopPropagation(); // prevent opening chat
+          const currentUser = auth.currentUser;
+          if (!currentUser) return;
 
-      container.appendChild(el);
-    });
-  } catch(err) {
-    container.innerHTML = "<p style='color:red'>Failed to load users: " + err.message + "</p>";
+          try {
+            // Add currentUser to this user's followers array
+            await updateDoc(doc(db, "users", uid), {
+              followers: arrayUnion(currentUser.uid)
+            });
+            followBtn.innerText = "Following";
+            followBtn.disabled = true;
+          } catch (err) {
+            alert("Failed to follow: " + err.message);
+          }
+        };
+
+        // Clicking the user card itself goes to chat
+        el.onclick = () => {
+          window.location.href = "chat.html?id=" + uid;
+        };
+
+        container.appendChild(el);
+      });
+    } catch(err) {
+      container.innerHTML = "<p style='color:red'>Failed to load users: " + err.message + "</p>";
+    }
   }
-}
 
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    loadUsers();
-  } else {
-    window.location.href = "/login.html";
-  }
-});
-</script></body>
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      loadUsers();
+    } else {
+      window.location.href = "/login.html";
+    }
+  });
+    </script>
+  </body>
 </html>
