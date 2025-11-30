@@ -58,16 +58,20 @@
 </div><div>
   <button>
     <!-- SVG icon -->
-  <button> <a href="quickmatch.html">Quickchat</a>
+  </button>
+  <button>
+    <!-- SVG icon -->
   </button>
 </div><div class="body" id="userContainer">
   <!-- USERS WILL LOAD HERE -->
-</div><script type="module">
-  // Firebase imports
+</div>
+<script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-
+  import { getFirestore, collection, getDocs, doc, updateDoc, increment }
+  from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  
   const firebaseConfig = {
     apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
     authDomain: "chat-34ff3.firebaseapp.com",
@@ -77,45 +81,67 @@
     appId: "1:391966829170:web:2b9fa454e8be176b7930eb",
     measurementId: "G-81MNVPKD3W"
   };
-
+  
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const auth = getAuth(app);
   const container = document.getElementById("userContainer");
-
+  
   async function loadUsers() {
     container.innerHTML = "<p style='color:white'>Loading users...</p>";
     try {
       const snap = await getDocs(collection(db, "users"));
       container.innerHTML = "";
-      snap.forEach(doc => {
-        const user = doc.data();
+      snap.forEach(docSnap => {
+        const user = docSnap.data();
         const el = document.createElement("div");
         el.classList.add("user-card");
+        
         el.innerHTML = `
           <div class="avatar"></div>
           <div class="user-text">
             <b>${user.username || "Unknown User"}</b><br>
-            <small>${user.gender || "Unknown"}</small>
+            <small>${user.gender || "Unknown"}</small><br>
+            <small>Followers: <span id="followers-${docSnap.id}">${user.followers || 0}</span></small>
           </div>
+          <button id="follow-${docSnap.id}">Follow</button>
         `;
-        el.onclick = () => {
-          window.location.href = "chat.html?id=" + doc.id;
+        
+        // Clicking the card opens chat
+        el.querySelector(".user-text").onclick = () => {
+          window.location.href = "chat.html?id=" + docSnap.id;
         };
+        
+        // Follow button
+        const followBtn = el.querySelector(`#follow-${docSnap.id}`);
+        followBtn.onclick = async (e) => {
+          e.stopPropagation(); // prevent opening chat
+          try {
+            const userRef = doc(db, "users", docSnap.id);
+            await updateDoc(userRef, {
+              followers: increment(1)
+            });
+            const span = document.getElementById(`followers-${docSnap.id}`);
+            span.innerText = parseInt(span.innerText) + 1;
+          } catch (err) {
+            alert("Failed to follow: " + err.message);
+          }
+        };
+        
         container.appendChild(el);
       });
-    } catch(err) {
+    } catch (err) {
       container.innerHTML = "<p style='color:red'>Failed to load users: " + err.message + "</p>";
     }
   }
-
-  // Auth state check
+  
   onAuthStateChanged(auth, (user) => {
     if (user) {
       loadUsers();
     } else {
-      window.location.href = "/login.html"; // redirect to login if not signed in
+      window.location.href = "/login.html";
     }
   });
-</script></body>
+</script>
+</body>
 </html>
