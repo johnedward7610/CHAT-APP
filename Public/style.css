@@ -1,3 +1,4 @@
+
 body {
   margin: 0;
   padding: 0;
@@ -67,13 +68,14 @@ button {
 }
 
 /* Chat box */
+/* Chat box */
 #chatbox {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
   height: calc(100vh - 90px);
   padding: 10px;
-  padding-bottom: 70px;
+  padding-bottom: 120px; /* increase bottom padding to stay above input */
 }
 
 /* Input fields */
