@@ -1,0 +1,107 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: sans-serif;
+}
+
+/* Chat input area */
+.chatinput {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  padding: 20px;
+  background: #CECECE;
+  border-top: 1px solid #ddd;
+  width: calc(100% - 40px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+textarea {
+  margin: 5px;
+  border: none;
+  font-size: 15px;
+  background: #E6E6E6;
+  border-radius: 10px;
+  font-weight: bold;
+  padding: 6px;
+  width: calc(100% - 80px);
+  resize: none;
+}
+
+button {
+  padding: 10px;
+  background: #D04033;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+/* Chat messages */
+.chathead {
+  max-width: 300px;
+  min-width: 50px;
+  padding: 15px;
+  font-weight: bold;
+  border-radius: 10px 0px 10px 10px;
+  margin-top: 10px;
+  white-space: pre-wrap;
+  margin-bottom: 20px;
+}
+
+/* Your messages */
+.chathead.mine {
+  background: #D04033;
+  align-self: flex-end;
+}
+
+/* Other users' messages */
+.chathead.other {
+  background: #ddd; /* grey for other messages */
+  align-self: flex-start;
+  border-radius: 0px 10px 10px 10px;
+  color: black;
+}
+
+/* Chat box */
+#chatbox {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  height: calc(100vh - 90px);
+  padding: 10px;
+  padding-bottom: 70px;
+}
+
+/* Input fields */
+input {
+  border: none;
+  font-size: 15px;
+  background: #E6E6E6;
+  border-radius: 10px;
+  font-weight: bold;
+  padding: 10px;
+  width: calc(100% - 20px);
+  resize: none;
+}
+
+/* Forgot password page */
+.forgotpage {
+  background: #EFEFEF;
+  font-weight: bold;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0px 10px 20px 0px #CECECE;
+}
+
+/* Cards (login/signup) */
+.card {
+  background: #EFEFEF;
+  font-weight: bold;
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0px 10px 20px 0px #CECECE;
+}
