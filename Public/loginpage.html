@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title></title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    body{
+      display: flex;
+      height: 100vh;     /* FIXED */
+      justify-content: center;
+      align-items: center;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card" id="signuppage">
+    <input type="text" name="username" id="username" placeholder="username">
+    <input type="email" name="useremail" id="useremail" placeholder="email">
+    <input type="password" name="password" id="password" placeholder="password"> <!-- FIXED -->
+    <button id="login">Login</button>
+    <hr>
+    <a href="forgot.html">Forgotpassword</a>
+  </div>
+
+  <script type="module">
+  // -----------------------------
+  // 1. IMPORT FIREBASE SDK
+  // -----------------------------
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword }
+  from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  import { getFirestore, setDoc, doc }
+  from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  
+  // -----------------------------
+  // 2. YOUR FIREBASE CONFIG
+  // -----------------------------
+  const firebaseConfig = {
+    apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
+  authDomain: "chat-34ff3.firebaseapp.com",
+  projectId: "chat-34ff3",
+  storageBucket: "chat-34ff3.firebasestorage.app",
+  messagingSenderId: "391966829170",
+  appId: "1:391966829170:web:2b9fa454e8be176b7930eb",
+  measurementId: "G-81MNVPKD3W"
+  };
+  
+  // -----------------------------
+  // 3. INITIALIZE FIREBASE
+  // -----------------------------
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  
+  // -----------------------------
+  // 4. GET ELEMENTS
+  // -----------------------------
+  const loginbtn = document.getElementById('login');
+  const password = document.getElementById('password');
+  const email = document.getElementById('useremail');
+  const username = document.getElementById('username');
+  
+  // -----------------------------
+  // 5. LOGIN + SIGNUP HANDLING
+  // -----------------------------
+  loginbtn.addEventListener('click', async function() {
+    
+    // Basic validation
+    if (
+      username.value.trim() === "" ||
+      password.value.trim() === "" ||
+      email.value.trim() === ""
+    ) {
+      alert("Please fill all fields");
+      return;
+    }
+    
+    try {
+      // Try to sign in first
+      const userCredential = await signInWithEmailAndPassword(auth, email.value, password.value);
+      console.log("Logged in:", userCredential.user.uid);
+      
+      window.location.href = "chatpage.html";
+    } catch (loginError) {
+      
+      // If login fail because user doesn't exist → SIGN UP
+      if (loginError.code === "auth/user-not-found") {
+        try {
+          const userCredential = await createUserWithEmailAndPassword(auth, email.value, password.value);
+          const uid = userCredential.user.uid;
+          
+          // Save username in Firestore
+          await setDoc(doc(db, "users", uid), {
+            username: username.value,
+            email: email.value
+          });
+          
+          alert("Account created!");
+          window.location.href = "chatpage.html";
+        } catch (signupError) {
+          alert(signupError.message);
+        }
+      } else {
+        alert(loginError.message);
+      }
+    }
+  });
+</script>
+</body>
+
+</html>
