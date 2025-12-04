@@ -1,85 +1,71 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login / Signup</title>
+  
   <style>
     body {
+      font-family: Arial;
       display: flex;
-      height: 100vh;
       justify-content: center;
       align-items: center;
-      font-family: Arial, sans-serif;
-      background: #f4f6ff;
+      height: 100vh;
+      background: #f5f5f5;
+      margin: 0;
     }
-
-    .card {
-      background: white;
+    .container {
+      background: #fff;
       padding: 30px;
       border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-      width: 300px;
-      display: none;
-      flex-direction: column;
-      gap: 10px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      width: 350px;
     }
-
-    .card.active {
-      display: flex;
-    }
-
     input {
+      width: 100%;
       padding: 10px;
+      margin: 8px 0;
       border-radius: 5px;
       border: 1px solid #ccc;
+      box-sizing: border-box;
     }
-
     button {
-      padding: 10px;
+      width: 100%;
+      padding: 12px;
+      margin-top: 10px;
       border: none;
-      background: #4a76f5;
-      color: white;
       border-radius: 5px;
+      background: #4CAF50;
+      color: white;
+      font-size: 16px;
       cursor: pointer;
     }
-
-    a {
+    button:hover {
+      background: #45a049;
+    }
+    .switch {
+      margin-top: 15px;
       text-align: center;
-      display: block;
-      margin-top: 10px;
-      text-decoration: none;
-      color: #4a76f5;
+      color: #007BFF;
+      cursor: pointer;
+    }
+    .error {
+      color: red;
+      font-size: 14px;
+    }
+    .toggle-password {
+      font-size: 12px;
+      cursor: pointer;
+      color: #007BFF;
+      margin-bottom: 10px;
+      display: inline-block;
     }
   </style>
-</head>
-
-<body>
-
-  <!-- LOGIN CARD -->
-  <div class="card active" id="loginCard">
-    <h2>Login</h2>
-    <input type="email" id="loginEmail" placeholder="Email">
-    <input type="password" id="loginPassword" placeholder="Password">
-    <button id="loginBtn">Login</button>
-    <a href="#" id="goToSignup">Don't have an account? Signup</a>
-  </div>
-
-  <!-- SIGNUP CARD -->
-  <div class="card" id="signupCard">
-    <h2>Signup</h2>
-    <input type="text" id="signupUsername" placeholder="Username">
-    <input type="email" id="signupEmail" placeholder="Email">
-    <input type="password" id="signupPassword" placeholder="Password">
-    <button id="signupBtn">Signup</button>
-    <a href="#" id="goToLogin">Already have an account? Login</a>
-  </div>
-
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-    import { getFirestore, setDoc, doc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
@@ -95,70 +81,119 @@
     const auth = getAuth(app);
     const db = getFirestore(app);
 
-    // Elements
-    const loginCard = document.getElementById("loginCard");
-    const signupCard = document.getElementById("signupCard");
+    let isLogin = true;
 
-    const loginBtn = document.getElementById("loginBtn");
-    const signupBtn = document.getElementById("signupBtn");
+    window.toggleForm = function() {
+      isLogin = !isLogin;
+      document.getElementById('formTitle').innerText = isLogin ? 'Login' : 'Signup';
+      document.getElementById('submitBtn').innerText = isLogin ? 'Login' : 'Signup';
 
-    const loginEmail = document.getElementById("loginEmail");
-    const loginPassword = document.getElementById("loginPassword");
+      // Show/hide username and confirm password
+      document.getElementById('username').style.display = isLogin ? 'none' : 'block';
+      document.getElementById('confirmPassword').style.display = isLogin ? 'none' : 'block';
 
-    const signupUsername = document.getElementById("signupUsername");
-    const signupEmail = document.getElementById("signupEmail");
-    const signupPassword = document.getElementById("signupPassword");
+      // Update switch text
+      document.getElementById('switchText').innerText = isLogin 
+        ? "Don't have an account? Signup" 
+        : "Already have an account? Login";
 
-    // Toggle between forms
-    document.getElementById("goToSignup").addEventListener("click", () => {
-      loginCard.classList.remove("active");
-      signupCard.classList.add("active");
-    });
+      document.getElementById('error').innerText = '';
+    }
 
-    document.getElementById("goToLogin").addEventListener("click", () => {
-      signupCard.classList.remove("active");
-      loginCard.classList.add("active");
-    });
+    window.togglePassword = function() {
+      const passwordInput = document.getElementById('password');
+      const confirmInput = document.getElementById('confirmPassword');
+      if (passwordInput.type === "password") {
+        passwordInput.type = "text";
+        if(confirmInput) confirmInput.type = "text";
+      } else {
+        passwordInput.type = "password";
+        if(confirmInput) confirmInput.type = "password";
+      }
+    }
 
-    // LOGIN
-    loginBtn.addEventListener("click", async () => {
-      if (!loginEmail.value || !loginPassword.value) {
-        alert("Please fill all fields");
+    window.submitForm = async function() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const username = document.getElementById('username').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      const errorEl = document.getElementById('error');
+      errorEl.innerText = '';
+
+      if (!email || !password || (!isLogin && !username)) {
+        errorEl.innerText = 'Please fill in all required fields.';
         return;
       }
-      try {
-        const userCredential = await signInWithEmailAndPassword(auth, loginEmail.value, loginPassword.value);
-        console.log("Logged in:", userCredential.user.uid);
-        window.location.href = "chatpage.html";
-      } catch (err) {
-        alert(err.message);
-      }
-    });
 
-    // SIGNUP
-    signupBtn.addEventListener("click", async () => {
-      if (!signupUsername.value || !signupEmail.value || !signupPassword.value) {
-        alert("Please fill all fields");
+      if (!isLogin && password !== confirmPassword) {
+        errorEl.innerText = "Passwords do not match!";
         return;
       }
+
       try {
-        const userCredential = await createUserWithEmailAndPassword(auth, signupEmail.value, signupPassword.value);
-        const uid = userCredential.user.uid;
+        if (isLogin) {
+          // LOGIN
+          const userCredential = await signInWithEmailAndPassword(auth, email, password);
+          const user = userCredential.user;
 
-        await setDoc(doc(db, "users", uid), {
-          username: signupUsername.value,
-          email: signupEmail.value
-        });
+          // Fetch username from Firestore
+          const docRef = doc(db, "users", user.uid);
+          const docSnap = await getDoc(docRef);
+          if (!docSnap.exists()) {
+            errorEl.innerText = "User data not found!";
+            return;
+          }
 
-        alert("Account created!");
-        window.location.href = "chatpage.html";
-      } catch (err) {
-        alert(err.message);
+          const usernameFromDB = docSnap.data().username;
+
+          // Save locally
+          localStorage.setItem('username', usernameFromDB);
+          localStorage.setItem('email', user.email);
+
+          alert(`Welcome back, ${usernameFromDB}!`);
+          // Redirect to homepage (replace with your page)
+          window.location.href = "home.html";
+
+        } else {
+          // SIGNUP
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          const user = userCredential.user;
+
+          // Update displayName in Auth
+          await updateProfile(user, { displayName: username });
+
+          // Save user info in Firestore
+          await setDoc(doc(db, "users", user.uid), {
+            uid: user.uid,
+            username: username,
+            email: email,
+            createdAt: new Date()
+          });
+
+          alert(`Account created successfully! You can now login.`);
+          toggleForm(); // Switch to login
+        }
+      } catch (error) {
+        errorEl.innerText = error.message;
       }
-    });
-
+    }
   </script>
+</head>
+<body>
+  <div class="container">
+    <h2 id="formTitle">Login</h2>
+    <div class="error" id="error"></div>
 
+    <!-- Username input -->
+    <input type="text" id="username" placeholder="Username" style="display:none;" />
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="Password" />
+    <input type="password" id="confirmPassword" placeholder="Confirm Password" style="display:none;" />
+
+    <span class="toggle-password" onclick="togglePassword()">Show / Hide Password</span>
+
+    <button id="submitBtn" onclick="submitForm()">Login</button>
+    <div class="switch" id="switchText" onclick="toggleForm()">Don't have an account? Signup</div>
+  </div>
 </body>
-
-</html>
+      </html>
