@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Profile</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #f5f5f5;
+      margin: 0;
+    }
+    .container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+    h2 {
+      color: #4CAF50;
+    }
+  </style>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
+      authDomain: "chat-34ff3.firebaseapp.com",
+      projectId: "chat-34ff3",
+      storageBucket: "chat-34ff3.appspot.com",
+      messagingSenderId: "391966829170",
+      appId: "1:391966829170:web:2b9fa454e8be176b7930eb",
+      measurementId: "G-81MNVPKD3W"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    window.onload = function() {
+      onAuthStateChanged(auth, async (user) => {
+        if (user) {
+          // User is signed in, fetch username from Firestore
+          const docRef = doc(db, "users", user.uid);
+          const docSnap = await getDoc(docRef);
+
+          if (docSnap.exists()) {
+            const username = docSnap.data().username;
+            document.getElementById('usernameDisplay').innerText = username;
+          } else {
+            document.getElementById('usernameDisplay').innerText = "Username not found";
+          }
+        } else {
+          // User not logged in, redirect to login page
+          window.location.href = "index.html";
+        }
+      });
+    }
+  </script>
+</head>
+<body>
+  <div class="container">
+    <h2>User Profile</h2>
+    <p>Username: <span id="usernameDisplay">Loading...</span></p>
+  </div>
+</body>
+  </html>
