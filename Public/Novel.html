@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Novel</title>
+  <style>
+    body {
+      font-family: Arial;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      padding: 20px;
+      background: #f5f5f5;
+      margin: 0;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+    }
+    button {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 5px;
+      background: #4CAF50;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover {
+      background: #45a049;
+    }
+    .error {
+      color: red;
+      margin-bottom: 10px;
+    }
+  </style>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+    import { getAuth } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
+      authDomain: "chat-34ff3.firebaseapp.com",
+      projectId: "chat-34ff3",
+      storageBucket: "chat-34ff3.appspot.com",
+      messagingSenderId: "391966829170",
+      appId: "1:391966829170:web:2b9fa454e8be176b7930eb",
+      measurementId: "G-81MNVPKD3W"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    window.publishNovel = async function() {
+      const title = document.getElementById('title').value.trim();
+      const story = document.getElementById('story').value.trim();
+      const errorEl = document.getElementById('error');
+      errorEl.innerText = '';
+
+      if (!title || !story) {
+        errorEl.innerText = 'Please fill in both the title and the story.';
+        return;
+      }
+
+      const user = auth.currentUser;
+      if (!user) {
+        errorEl.innerText = 'You must be logged in to publish a novel.';
+        return;
+      }
+
+      try {
+        // Save novel under "users/{uid}/novels/{autoId}"
+        const novelRef = await addDoc(collection(db, "users", user.uid, "novels"), {
+          title: title,
+          story: story,
+          createdAt: new Date()
+        });
+
+        alert('Novel published successfully!');
+        document.getElementById('title').value = '';
+        document.getElementById('story').value = '';
+      } catch (err) {
+        console.error(err);
+        errorEl.innerText = 'Failed to publish novel: ' + err.message;
+      }
+    }
+  </script>
+</head>
+<body>
+  <h1>Create Novel</h1>
+  <div class="error" id="error"></div>
+  <p>Title</p>
+  <input type="text" id="title" placeholder="Enter novel title">
+  <p>The Story</p>
+  <textarea id="story" rows="10" placeholder="Write your story here"></textarea>
+  <button onclick="publishNovel()">Publish</button>
+</body>
+  </html>
