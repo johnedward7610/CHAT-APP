@@ -1,9 +1,7 @@
-// 1. IMPORT FIREBASE
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
-import { getFirestore, addDoc, collection, serverTimestamp, onSnapshot, query, orderBy, getDoc, doc } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+import { getFirestore, collectionGroup, getDocs } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
-// 2. FIREBASE CONFIG
 const firebaseConfig = {
   apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
   authDomain: "chat-34ff3.firebaseapp.com",
@@ -14,87 +12,87 @@ const firebaseConfig = {
   measurementId: "G-81MNVPKD3W"
 };
 
-// 3. INIT FIREBASE
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// 4. DOM ELEMENTS
-const button = document.getElementById('send');
-const inputtext = document.getElementById('input');
-const chatbox = document.getElementById("chatbox");
-const logoutbtn = document.getElementById('logout');
+// Map genre sections
+const sections = {
+  'Romance': document.getElementById('body-romance').querySelector('.content'),
+  'Action': document.getElementById('body-action').querySelector('.content'),
+  'Horror': document.getElementById('body-horror').querySelector('.content')
+};
 
-// 5. SCROLL TO BOTTOM
-function scrollTobottom() {
-  chatbox.scrollTo({
-    top: chatbox.scrollHeight,
-    behavior: 'smooth'
-  });
+// Book overlay
+const bookOverlay = document.createElement('div');
+bookOverlay.id = 'bookOverlay';
+document.body.appendChild(bookOverlay);
+
+const closeBtn = document.createElement('button');
+closeBtn.textContent = 'Close';
+bookOverlay.appendChild(closeBtn);
+closeBtn.addEventListener('click', () => {
+  bookOverlay.style.display = 'none';
+});
+
+const bookTitle = document.createElement('h2');
+bookOverlay.appendChild(bookTitle);
+
+const bookContent = document.createElement('div');
+bookOverlay.appendChild(bookContent);
+
+// Load novels from Firestore
+async function loadNovels() {
+  try {
+    const querySnapshot = await getDocs(collectionGroup(db, 'novels'));
+
+    // Clear sections
+    Object.values(sections).forEach(sec => sec.innerHTML = '');
+
+    querySnapshot.forEach(doc => {
+      const novel = doc.data();
+      const title = novel.title || 'Untitled';
+      const genre = novel.genre || 'Misc';
+      const story = novel.story || '';
+
+      const block = document.createElement('div');
+      block.className = 'block';
+      block.textContent = title;
+
+      // Click to open overlay
+      block.addEventListener('click', () => {
+        bookTitle.textContent = title;
+        bookContent.textContent = story;
+        bookOverlay.style.display = 'block';
+      });
+
+      if (sections[genre]) sections[genre].appendChild(block);
+    });
+  } catch (err) {
+    console.error('Error loading novels:', err);
+  }
 }
 
-// 6. CHECK LOGIN
-let currentUser = null;
-let currentUsername = "Anonymous";
+// Initial load
+window.onload = loadNovels;
 
-onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    window.location.href = "loginpage.html";
-    return;
-  }
-  currentUser = user;
-  
-  // Load username from Firestore
-  const userDoc = await getDoc(doc(db, "users", user.uid));
-  if (userDoc.exists()) {
-    currentUsername = userDoc.data().username || "Anonymous";
-  }
-  
-  // Start listening to messages after login
-  listenMessages();
+// Existing page buttons
+const all = document.getElementById('all');
+const body = document.getElementById('body-romance'); // example
+const setting = document.getElementById('settings');
+const page = document.getElementById('overlap');
+const back = document.getElementById('return');
+const list = document.getElementById('listgen');
+
+all.addEventListener('click', () => {
+  body.style.display = body.style.display === "none" ? "" : "none";
+  list.style.display = body.style.display === "none" ? "" : "none";
 });
 
-// 7. SEND MESSAGE
-button.addEventListener('click', async function() {
-  const inputvalue = inputtext.value.trim();
-  if (inputvalue === "") return;
-  
-  await addDoc(collection(db, "messages"), {
-    text: inputvalue,
-    senderUid: currentUser.uid,
-    senderName: currentUsername,
-    createdAt: serverTimestamp()
-  });
-  
-  inputtext.value = "";
+setting.addEventListener('click', () => {
+  page.style.display = page.style.display === "block" ? "none" : "block";
 });
 
-// 8. LISTEN TO MESSAGES IN REAL-TIME
-function listenMessages() {
-  const q = query(collection(db, "messages"), orderBy("createdAt"));
-  onSnapshot(q, (snapshot) => {
-    chatbox.innerHTML = "";
-    snapshot.forEach(doc => {
-  const msg = doc.data();
-  const text = document.createElement('div');
-  
-  // Add class depending on who sent it
-  if (msg.senderUid === currentUser.uid) {
-    text.className = "chathead mine"; // your messages
-  } else {
-    text.className = "chathead other"; // others' messages
-  }
-  
-  text.innerText = `${msg.senderName}: ${msg.text}`;
-  chatbox.appendChild(text);
-});
-    scrollTobottom();
-  });
-}
-
-// 9. LOGOUT
-logoutbtn.addEventListener('click', () => {
-  signOut(auth).then(() => {
-    window.location.href = "loginpage.html";
-  });
+back.addEventListener('click', () => {
+  page.style.display = "none";
 });
