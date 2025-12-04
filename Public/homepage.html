@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title></title>
+  <style>
+    body {
+  margin: 0;
+}
+
+#overlap {
+  background: #F1F1F1;
+  width: 50%;
+  height: 44rem;
+  position: absolute;
+  overflow-y: hidden;
+  
+}
+#return{
+  position: absolute;
+}
+.Set {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 40rem;
+  flex-direction: column;
+}
+.block{
+  background: #D5D5D5;
+  height: 100px;
+  width: 70px;
+  margin: 20px;
+  border-radius: 20px;
+  display: inline-block;
+}
+.content{
+  width: 100; /* Set the width of the scroll box */
+overflow-x: auto; /* Enable horizontal scrolling */
+overflow-y: hidden; /* Hide vertical scrolling */
+white-space: nowrap; /* Prevent content from wrapping to a new line */
+}
+
+.genres {
+display: grid;
+grid-template-columns: repeat(4, 1fr);
+gap: 10px;
+}
+
+.genre {
+background-color: #f0f0f0;
+padding: 10px;
+border-radius: 5px;
+text-align: center;
+}
+
+
+
+  </style>
+  
+</head>
+
+<body>
+  <div id="overlap" style="display: none;">
+  <button id="return">return</button>
+  <div class="Set">
+      <button>Profile</button>
+      <button>Log out</button>
+  </div>
+
+</div>
+  <button id="settings">settings</button>
+  <h1>ELEMENTS</h1>
+  
+  <hr>
+  <div class="HEADER">
+    <input type="text" name="search" id="search" placeholder="searchbar" />
+    <button type="submit">SEARCH</button>
+  </div
+  <hr/>
+  <div id="genras" style="display: show;">
+    <table border="1">
+     <tr>
+        <th>Romance</th>
+         <th>Action</th>
+         <th>Horror</th>
+         <th>sci-fi</th>
+         <th>mistery</th>
+     </tr>
+    </table>
+    <button id="all">all</button>
+  </div>
+  <hr>
+  <div id="body">
+    <h1>romance</h1>
+    <hr/>
+    <div class="content">
+      <div class="block"></div> 
+      <!--- you see these blocks? make these load the names of the novels published at the bottom -->
+      <div class="block"></div>
+      <div class="block"></div>
+      <div class="block"></div>
+      <a href="">more...</a>
+    </div>
+      <div id="body">
+    <h1>Action</h1>
+    <hr />
+    <div class="content">
+      <div class="block"></div>
+      <div class="block"></div>
+      <div class="block"></div>
+      <div class="block"></div>
+      <a href="">more...</a>
+    </div>
+  </div>
+  <div id="body">
+    <h1>Horror</h1>
+    <hr />
+    <div class="content">
+      <div class="block"></div>
+      <div class="block"></div>
+      <div class="block"></div>
+      <div class="block"></div>
+      <a href="">more...</a>
+    </div>
+  </div>
+  </div>
+  <div id="listgen" style="display: none;">
+    <div class="genres">
+  <div class="genre">Romance</div>
+  <div class="genre">Action</div>
+  <div class="genre">Horror</div>
+  <div class="genre">Sci-Fi</div>
+  <div class="genre">Mystery</div>
+  <div class="genre">Thriller</div>
+  <div class="genre">Comedy</div>
+  <div class="genre">Drama</div>
+  <div class="genre">Adventure</div>
+  <div class="genre">Fantasy</div>
+  <div class="genre">Crime</div>
+  <div class="genre">Biography</div>
+  <div class="genre">History</div>
+  <div class="genre">Music</div>
+  <div class="genre">War</div>
+  <div class="genre">Western</div>
+</div>
+  </div>
+  <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+  import { getAuth } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+  import { getFirestore, collectionGroup, getDocs } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+  
+  // Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyDXXQvWziaNYaStkNkDjDclNxrVa_7qYX8",
+    authDomain: "chat-34ff3.firebaseapp.com",
+    projectId: "chat-34ff3",
+    storageBucket: "chat-34ff3.appspot.com",
+    messagingSenderId: "391966829170",
+    appId: "1:391966829170:web:2b9fa454e8be176b7930eb",
+    measurementId: "G-81MNVPKD3W"
+  };
+  
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  
+  // Map genre titles to container elements
+  const genreSections = {
+    'Romance': document.querySelector('#body h1:nth-of-type(1)').nextElementSibling,
+    'Action': document.querySelector('#body h1:nth-of-type(2)').nextElementSibling,
+    'Horror': document.querySelector('#body h1:nth-of-type(3)').nextElementSibling,
+    // Add other genres if needed
+  };
+  
+  // Load all novels
+  async function loadNovels() {
+    try {
+      // Get all novels from all users using collectionGroup
+      const querySnapshot = await getDocs(collectionGroup(db, 'novels'));
+      
+      // Clear all blocks first
+      Object.values(genreSections).forEach(section => section.innerHTML = '');
+      
+      querySnapshot.forEach(doc => {
+        const novel = doc.data();
+        const title = novel.title || "Untitled";
+        const genre = novel.genre || "Misc"; // Add genre field in your create novel page
+        const block = document.createElement('div');
+        block.className = 'block';
+        block.textContent = title;
+        
+        // Append to the correct genre section
+        if (genreSections[genre]) {
+          genreSections[genre].appendChild(block);
+        }
+      });
+    } catch (err) {
+      console.error('Error loading novels:', err);
+    }
+  }
+  
+  // Call it when page loads
+  loadNovels();
+</script>
+</body>
+
+  </html>
