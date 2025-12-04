@@ -1,40 +1,89 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title></title>
-  <style>
-    body {
-  margin: 0;
-}
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Novels</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="script.js"></script>
+</head>
+<body>
+  <!-- Settings overlay -->
+  <div id="overlap" style="display: none;">
+    <button id="return">Return</button>
+    <div class="Set">
+      <button>Profile</button>
+      <button>Log out</button>
+    </div>
+  </div>
 
-#overlap {
-  background: #F1F1F1;
-  width: 50%;
-  height: 44rem;
-  position: absolute;
-  overflow-y: hidden;
-  
-}
-#return{
-  position: absolute;
-}
-.Set {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 40rem;
-  flex-direction: column;
-}
-.block{
-  background: #D5D5D5;
-  height: 100px;
-  width: 70px;
-  margin: 20px;
-  border-radius: 20px;
-  display: inline-block;
+  <button id="settings">Settings</button>
+  <h1>ELEMENTS</h1>
+
+  <hr>
+  <div class="HEADER">
+    <input type="text" id="search" placeholder="searchbar" />
+    <button type="submit">SEARCH</button>
+  </div>
+  <hr/>
+
+  <!-- Genres table -->
+  <div id="genras">
+    <table border="1">
+      <tr>
+        <th>Romance</th>
+        <th>Action</th>
+        <th>Horror</th>
+        <th>Sci-Fi</th>
+        <th>Mystery</th>
+      </tr>
+    </table>
+    <button id="all">All</button>
+  </div>
+  <hr>
+
+  <!-- Novel sections -->
+  <div id="body-romance">
+    <h1>Romance</h1>
+    <hr/>
+    <div class="content"></div>
+  </div>
+
+  <div id="body-action">
+    <h1>Action</h1>
+    <hr/>
+    <div class="content"></div>
+  </div>
+
+  <div id="body-horror">
+    <h1>Horror</h1>
+    <hr/>
+    <div class="content"></div>
+  </div>
+
+  <!-- Genre list overlay -->
+  <div id="listgen" style="display: none;">
+    <div class="genres">
+      <div class="genre">Romance</div>
+      <div class="genre">Action</div>
+      <div class="genre">Horror</div>
+      <div class="genre">Sci-Fi</div>
+      <div class="genre">Mystery</div>
+      <div class="genre">Thriller</div>
+      <div class="genre">Comedy</div>
+      <div class="genre">Drama</div>
+      <div class="genre">Adventure</div>
+      <div class="genre">Fantasy</div>
+      <div class="genre">Crime</div>
+      <div class="genre">Biography</div>
+      <div class="genre">History</div>
+      <div class="genre">Music</div>
+      <div class="genre">War</div>
+      <div class="genre">Western</div>
+    </div>
+  </div>
+</body>
+</html>  display: inline-block;
 }
 .content{
   width: 100; /* Set the width of the scroll box */
