@@ -1,141 +1,89 @@
-/* ===========================
-   GENERAL BODY STYLES
-=========================== */
 body {
   margin: 0;
-  padding: 0;
-  font-family: sans-serif;
-  background: #f4f6ff;
+  font-family: Arial, sans-serif;
 }
 
-/* ===========================
-   CARDS (LOGIN/SIGNUP/FORGOT)
-=========================== */
-.card, .forgotpage {
-  background: #EFEFEF;
-  font-weight: bold;
+#overlap {
+  background: #F1F1F1;
+  width: 50%;
+  height: 44rem;
+  position: absolute;
+  overflow-y: hidden;
+}
+
+#return {
+  position: absolute;
+}
+
+.Set {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 40rem;
+  flex-direction: column;
+}
+
+.block {
+  background: #D5D5D5;
+  height: 100px;
+  width: 150px;
+  margin: 20px;
   border-radius: 20px;
-  padding: 20px;
-  box-shadow: 0px 10px 20px 0px #CECECE;
-}
-
-/* ===========================
-   INPUT FIELDS
-=========================== */
-input, textarea {
-  border: none;
-  font-size: 15px;
-  background: #E6E6E6;
-  border-radius: 10px;
-  font-weight: bold;
+  display: inline-block;
+  text-align: center;
   padding: 10px;
-  width: calc(100% - 20px);
-  resize: none;
-  box-sizing: border-box;
-}
-
-/* ===========================
-   BUTTONS
-=========================== */
-button {
-  padding: 10px;
-  background: #D04033;
-  border: none;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: bold;
   cursor: pointer;
 }
 
-/* ===========================
-   CHAT BOX
-=========================== */
-#chatbox {
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  height: 100vh;
+.content {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
+}
+
+.genres {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.genre {
+  background-color: #f0f0f0;
   padding: 10px;
-  padding-bottom: 120px; /* space for input area */
-  box-sizing: border-box;
-  transition: height 0.2s;
+  border-radius: 5px;
+  text-align: center;
 }
 
-/* ===========================
-   CHAT INPUT AREA
-=========================== */
-.chatinput {
+/* Book overlay styles */
+#bookOverlay {
+  display: none;
   position: fixed;
-  bottom: 0;
+  top: 0;
   left: 0;
-  padding: 15px;
-  background: #CECECE;
-  border-top: 1px solid #ddd;
   width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-sizing: border-box;
-  z-index: 10;
+  height: 100%;
+  background: #fff;
+  padding: 20px;
+  overflow: auto;
+  z-index: 1000;
 }
 
-/* ===========================
-   TEXTAREA INSIDE CHAT INPUT
-=========================== */
-.chatinput textarea {
-  margin-right: 10px;
-  width: 100%;
-  max-height: 100px;
-  overflow-y: auto;
+#bookOverlay button {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  padding: 10px;
 }
 
-/* ===========================
-   CHAT MESSAGES
-=========================== */
-.chathead {
-  max-width: 70%;
-  padding: 12px 15px;
-  font-weight: bold;
-  border-radius: 10px;
-  margin-top: 10px;
-  margin-bottom: 10px;
-  word-wrap: break-word;
+#bookOverlay h2 {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+}
+
+#bookOverlay div {
+  margin-top: 60px;
   white-space: pre-wrap;
-}
-
-/* Your messages */
-.chathead.mine {
-  background: #D04033;
-  color: white;
-  align-self: flex-end;
-  border-radius: 10px 0px 10px 10px;
-}
-
-/* Other users' messages */
-.chathead.other {
-  background: #ddd;
-  color: black;
-  align-self: flex-start;
-  border-radius: 0px 10px 10px 10px;
-}
-
-/* ===========================
-   SCROLLBAR STYLING
-=========================== */
-#chatbox::-webkit-scrollbar {
-  width: 6px;
-}
-
-#chatbox::-webkit-scrollbar-thumb {
-  background: rgba(0,0,0,0.2);
-  border-radius: 3px;
-}
-
-/* ===========================
-   MOBILE KEYBOARD SUPPORT
-=========================== */
-@media screen and (max-width: 600px) {
-  #chatbox {
-    padding-bottom: 140px; /* extra space for mobile keyboard */
-  }
-}
+  line-height: 1.5;
+   }
